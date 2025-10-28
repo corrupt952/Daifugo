@@ -1,0 +1,3 @@
+[submodule "docs/03_technical/coding_standards"]
+	path = docs/03_technical/coding_standards
+	url = https://github.com/tang3cko/coding_standards.git
