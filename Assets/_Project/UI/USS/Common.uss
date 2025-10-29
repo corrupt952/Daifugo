@@ -1,0 +1,42 @@
+/**
+ * Common.uss - Design Tokens
+ * Defines CSS variables for consistent styling across the game
+ */
+
+:root {
+    /* Colors */
+    --color-primary: rgb(255, 215, 0);              /* Gold */
+    --color-primary-hover: rgb(255, 223, 50);       /* Lighter Gold */
+    --color-secondary: rgb(34, 139, 34);            /* Forest Green */
+    --color-field-bg: rgba(34, 139, 34, 0.8);       /* Green Felt (Semi-transparent) */
+    --color-card-bg: rgba(255, 255, 255, 0.95);     /* White Card Background */
+    --color-card-border: rgba(0, 0, 0, 0.2);        /* Card Border */
+    --color-text-light: rgb(255, 255, 255);         /* White Text */
+    --color-text-dark: rgb(0, 0, 0);                /* Black Text */
+    --color-overlay-bg: rgba(0, 0, 0, 0.7);         /* Dark Overlay */
+    --color-panel-bg: rgb(40, 40, 40);              /* Panel Background */
+
+    /* Typography */
+    --font-size-xlarge: 32px;
+    --font-size-large: 24px;
+    --font-size-medium: 18px;
+    --font-size-small: 14px;
+
+    /* Spacing */
+    --spacing-xsmall: 4px;
+    --spacing-small: 8px;
+    --spacing-medium: 16px;
+    --spacing-large: 24px;
+    --spacing-xlarge: 32px;
+
+    /* Card Dimensions */
+    --card-width: 80px;
+    --card-height: 120px;
+    --card-spacing: 8px;
+    --card-border-radius: 8px;
+
+    /* Animation */
+    --transition-fast: 0.2s;
+    --transition-medium: 0.3s;
+    --transition-slow: 0.5s;
+}

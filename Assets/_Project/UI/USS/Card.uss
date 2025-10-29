@@ -1,0 +1,62 @@
+/**
+ * Card.uss - Card Component Styles (BEM)
+ * Defines card visual element styles using BEM naming
+ */
+
+/* Block: card */
+.card {
+    width: var(--card-width);
+    height: var(--card-height);
+    border-radius: var(--card-border-radius);
+    margin: var(--spacing-xsmall);
+    transition-duration: var(--transition-medium);
+    transition-property: scale, translate;
+    overflow: hidden;
+}
+
+/* Element: card__image */
+.card__image {
+    width: 100%;
+    height: 100%;
+    -unity-background-scale-mode: scale-and-crop;
+    -unity-background-image-tint-color: white;
+}
+
+/* Modifier: card--selected */
+.card--selected {
+    scale: 1.1;
+    translate: 0 -20px;
+    border-color: var(--color-primary);
+    border-width: 3px;
+}
+
+/* Modifier: card--playable (can be played) */
+.card--playable {
+    border-color: var(--color-primary);
+    border-width: 3px;
+    border-style: solid;
+}
+
+/* Modifier: card--dragging */
+.card--dragging {
+    scale: 1.15;
+    rotate: 5deg;
+    opacity: 0.8;
+}
+
+/* Modifier: card--opponent (face-down card back) */
+.card--opponent {
+    scale: 0.8;
+}
+
+/* Pseudo-class: hover */
+.card:hover {
+    scale: 1.05;
+    translate: 0 -10px;
+}
+
+/* Disable hover during opponent turn */
+.card--disabled:hover {
+    scale: 1.0;
+    translate: 0 0;
+}

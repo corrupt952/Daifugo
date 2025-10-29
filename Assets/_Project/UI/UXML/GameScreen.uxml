@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML
+    xmlns:ui="UnityEngine.UIElements"
+    xmlns:uie="UnityEditor.UIElements"
+    xsi="http://www.w3.org/2001/XMLSchema-instance"
+    engine="UnityEngine.UIElements"
+    editor="UnityEditor.UIElements"
+    noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd"
+    editor-extension-mode="False">
+
+    <!-- USS Stylesheets -->
+    <Style src="../USS/Common.uss" />
+    <Style src="../USS/GameScreen.uss" />
+    <Style src="../USS/Card.uss" />
+    <Style src="../USS/Hand.uss" />
+
+    <!-- Main Game Screen Container -->
+    <ui:VisualElement name="GameScreen" class="game-screen">
+
+        <!-- Opponent Area (Top) -->
+        <ui:VisualElement name="OpponentArea" class="opponent-area">
+            <ui:Label name="OpponentNameText" class="player-name" text="CPU 1" />
+            <ui:VisualElement name="OpponentHandContainer" class="hand-container hand-container--opponent" />
+        </ui:VisualElement>
+
+        <!-- Field Area (Center) -->
+        <ui:VisualElement name="FieldArea" class="field-area">
+            <ui:Label name="TurnInfoText" class="turn-info" text="Your Turn" />
+            <ui:VisualElement name="FieldCardsContainer" class="field-cards" />
+        </ui:VisualElement>
+
+        <!-- Player Hand Area (Bottom) -->
+        <ui:VisualElement name="PlayerHandArea" class="player-hand-area">
+            <ui:Label name="PlayerNameText" class="player-name" text="You" />
+            <ui:VisualElement name="PlayerHandContainer" class="hand-container hand-container--player" />
+            <ui:VisualElement class="player-actions">
+                <ui:Button name="PlayCardButton" class="button-primary" text="Play Card" />
+                <ui:Button name="PassButton" class="button-secondary" text="Pass" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- Game End Screen (Hidden by default) -->
+        <ui:VisualElement name="GameEndScreen" class="game-end-screen game-end-screen--hidden">
+            <ui:VisualElement class="game-end-panel">
+                <ui:Label name="WinnerText" class="winner-text" text="You Win!" />
+                <ui:Button name="RestartButton" class="button-primary" text="Restart Game" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+    </ui:VisualElement>
+</ui:UXML>

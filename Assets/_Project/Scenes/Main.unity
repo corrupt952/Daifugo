@@ -38,12 +38,12 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.18028378, g: 0.22571412, b: 0.30692285, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
   m_ObjectHideFlags: 0
-  serializedVersion: 12
+  serializedVersion: 13
+  m_BakeOnSceneLoad: 0
   m_GISettings:
     serializedVersion: 2
     m_BounceScale: 1
@@ -248,14 +248,14 @@ MonoBehaviour:
   m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
   m_RequiresDepthTexture: 0
   m_RequiresColorTexture: 0
-  m_Version: 2
   m_TaaSettings:
-    quality: 3
-    frameInfluence: 0.1
-    jitterScale: 1
-    mipBias: 0
-    varianceClampScale: 0.9
-    contrastAdaptiveSharpening: 0
+    m_Quality: 3
+    m_FrameInfluence: 0.1
+    m_JitterScale: 1
+    m_MipBias: 0
+    m_VarianceClampScale: 0.9
+    m_ContrastAdaptiveSharpening: 0
+  m_Version: 2
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -273,7 +273,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!108 &410087040
 Light:
   m_ObjectHideFlags: 0
@@ -336,6 +336,9 @@ Light:
   m_ForceVisible: 0
   m_ShadowRadius: 0
   m_ShadowAngle: 0
+  m_LightUnit: 1
+  m_LuxAtDistance: 1
+  m_EnableSpotReflector: 1
 --- !u!4 &410087041
 Transform:
   m_ObjectHideFlags: 0
@@ -363,17 +366,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Version: 3
   m_UsePipelineSettings: 1
   m_AdditionalLightsShadowResolutionTier: 2
-  m_LightLayerMask: 1
-  m_RenderingLayers: 1
   m_CustomShadowLayers: 0
-  m_ShadowLayerMask: 1
-  m_ShadowRenderingLayers: 1
   m_LightCookieSize: {x: 1, y: 1}
   m_LightCookieOffset: {x: 0, y: 0}
   m_SoftShadowQuality: 1
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
@@ -390,7 +399,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &832575518
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -423,6 +432,244 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1231515944
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1231515945}
+  - component: {fileID: 1231515947}
+  - component: {fileID: 1231515946}
+  m_Layer: 0
+  m_Name: UI
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1231515945
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1231515944}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1231515946
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1231515944}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cdb50028b81d8409d89a749c726e17d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Daifugo.UI.GameScreenUI
+  playerHands:
+  - {fileID: 11400000, guid: aeb1f5c60ca084c0c8c42312b615cc00, type: 2}
+  - {fileID: 11400000, guid: 4761eef54930a44669a6bec6b17068a2, type: 2}
+  - {fileID: 11400000, guid: 1d43dce9d354b420daacd3aae92690b0, type: 2}
+  - {fileID: 11400000, guid: f9fdc8a639cf54f049c8061c11611393, type: 2}
+  onGameStarted: {fileID: 11400000, guid: 1e559a098bd1048a1921013bec63c699, type: 2}
+  onTurnChanged: {fileID: 11400000, guid: 3052b07f623664ad6a2f90f0c08f9901, type: 2}
+  onCardPlayed: {fileID: 11400000, guid: c64d5e50975ed488b890e2270acf9439, type: 2}
+  onFieldReset: {fileID: 11400000, guid: 78b7ac6c0fc6b47699429d9ecd2e454a, type: 2}
+  onGameEnded: {fileID: 11400000, guid: d9f22a0ca0e104764b746a7bb0204053, type: 2}
+  onPlayCardRequested: {fileID: 11400000, guid: 3ce52627793344060880d4c51b866543, type: 2}
+  onPassButtonClicked: {fileID: 11400000, guid: 6b033279cf1214bd594eb0564dc2b4ae, type: 2}
+--- !u!114 &1231515947
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1231515944}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 19102, guid: 0000000000000000e000000000000000, type: 0}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.dll::UnityEngine.UIElements.UIDocument
+  m_PanelSettings: {fileID: 11400000, guid: 6578f85c0264f48649c8381e445c18b9, type: 2}
+  m_ParentUI: {fileID: 0}
+  sourceAsset: {fileID: 9197481963319205126, guid: 207658815d4434c958897bf17dd6ef13, type: 3}
+  m_SortingOrder: 0
+  m_Position: 0
+  m_WorldSpaceSizeMode: 1
+  m_WorldSpaceWidth: 1920
+  m_WorldSpaceHeight: 1080
+  m_PivotReferenceSize: 0
+  m_Pivot: 0
+  m_WorldSpaceCollider: {fileID: 0}
+--- !u!1 &1449773113
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1449773114}
+  - component: {fileID: 1449773116}
+  - component: {fileID: 1449773115}
+  m_Layer: 0
+  m_Name: AIController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1449773114
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1449773113}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1449773115
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1449773113}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9e92ca12672bf44cdbae6dfa2b867064, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Daifugo.AI.AIPlayer
+  ruleValidator: {fileID: 1612777160}
+--- !u!114 &1449773116
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1449773113}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0998d1b5a86544da0a5247d4a4f72e23, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Daifugo.AI.AIController
+  aiTurnDelay: 1.5
+  playerHands:
+  - {fileID: 11400000, guid: aeb1f5c60ca084c0c8c42312b615cc00, type: 2}
+  - {fileID: 11400000, guid: 4761eef54930a44669a6bec6b17068a2, type: 2}
+  - {fileID: 11400000, guid: 1d43dce9d354b420daacd3aae92690b0, type: 2}
+  - {fileID: 11400000, guid: f9fdc8a639cf54f049c8061c11611393, type: 2}
+  aiPlayer: {fileID: 1449773115}
+  onGameStarted: {fileID: 11400000, guid: 1e559a098bd1048a1921013bec63c699, type: 2}
+  onTurnChanged: {fileID: 11400000, guid: 3052b07f623664ad6a2f90f0c08f9901, type: 2}
+  onCardPlayed: {fileID: 11400000, guid: c64d5e50975ed488b890e2270acf9439, type: 2}
+  onFieldReset: {fileID: 11400000, guid: 78b7ac6c0fc6b47699429d9ecd2e454a, type: 2}
+  onGameEnded: {fileID: 11400000, guid: d9f22a0ca0e104764b746a7bb0204053, type: 2}
+  onPlayCardRequested: {fileID: 11400000, guid: 3ce52627793344060880d4c51b866543, type: 2}
+  onPassButtonClicked: {fileID: 11400000, guid: 6b033279cf1214bd594eb0564dc2b4ae, type: 2}
+--- !u!1 &1612777158
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1612777159}
+  - component: {fileID: 1612777162}
+  - component: {fileID: 1612777161}
+  - component: {fileID: 1612777160}
+  m_Layer: 0
+  m_Name: GameManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1612777159
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1612777158}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1612777160
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1612777158}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 104ff36710bbc492e877e78600b074cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Daifugo.Core.RuleValidator
+--- !u!114 &1612777161
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1612777158}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fef01be520de412f93c818719e423ad, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Daifugo.Core.TurnManager
+  onTurnChanged: {fileID: 11400000, guid: 3052b07f623664ad6a2f90f0c08f9901, type: 2}
+  onFieldReset: {fileID: 11400000, guid: 78b7ac6c0fc6b47699429d9ecd2e454a, type: 2}
+--- !u!114 &1612777162
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1612777158}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 060d856614c174471940c6309f9a95d3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Daifugo.Core.GameManager
+  deck: {fileID: 11400000, guid: f04894baf8f344b66852db6c67da44a0, type: 2}
+  playerHands:
+  - {fileID: 11400000, guid: aeb1f5c60ca084c0c8c42312b615cc00, type: 2}
+  - {fileID: 11400000, guid: 4761eef54930a44669a6bec6b17068a2, type: 2}
+  - {fileID: 11400000, guid: 1d43dce9d354b420daacd3aae92690b0, type: 2}
+  - {fileID: 11400000, guid: f9fdc8a639cf54f049c8061c11611393, type: 2}
+  onPlayCardRequested: {fileID: 11400000, guid: 3ce52627793344060880d4c51b866543, type: 2}
+  onPassButtonClicked: {fileID: 11400000, guid: 6b033279cf1214bd594eb0564dc2b4ae, type: 2}
+  onGameStarted: {fileID: 11400000, guid: 1e559a098bd1048a1921013bec63c699, type: 2}
+  onCardPlayed: {fileID: 11400000, guid: c64d5e50975ed488b890e2270acf9439, type: 2}
+  onFieldReset: {fileID: 11400000, guid: 78b7ac6c0fc6b47699429d9ecd2e454a, type: 2}
+  onGameEnded: {fileID: 11400000, guid: d9f22a0ca0e104764b746a7bb0204053, type: 2}
+  turnManager: {fileID: 1612777161}
+  ruleValidator: {fileID: 1612777160}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -430,3 +677,6 @@ SceneRoots:
   - {fileID: 330585546}
   - {fileID: 410087041}
   - {fileID: 832575519}
+  - {fileID: 1612777159}
+  - {fileID: 1449773114}
+  - {fileID: 1231515945}

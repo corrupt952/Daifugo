@@ -1,0 +1,167 @@
+/**
+ * GameScreen.uss - Layout Styles
+ * Defines the main game screen layout structure
+ */
+
+.game-screen {
+    width: 100%;
+    height: 100%;
+    background-color: var(--color-secondary);
+    flex-direction: column;
+    justify-content: space-between;
+    padding: var(--spacing-large);
+}
+
+/* Opponent Area (Top) */
+.opponent-area {
+    flex-direction: column;
+    align-items: center;
+    padding: var(--spacing-medium);
+    min-height: 180px;
+}
+
+/* Field Area (Center) */
+.field-area {
+    flex-grow: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--color-field-bg);
+    border-radius: 16px;
+    padding: var(--spacing-large);
+    margin: var(--spacing-medium) 0;
+    border-width: 3px;
+    border-color: rgba(255, 255, 255, 0.2);
+    border-style: dashed;
+    transition-duration: var(--transition-fast);
+    transition-property: border-color, background-color;
+}
+
+/* Field Area Hover State (during drag) */
+.field-area--drag-over {
+    border-color: var(--color-primary);
+    border-style: solid;
+    background-color: rgba(255, 215, 0, 0.1);
+}
+
+.field-cards {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    min-height: 140px;
+    flex-wrap: wrap;
+}
+
+.turn-info {
+    font-size: var(--font-size-large);
+    color: var(--color-text-light);
+    margin-bottom: var(--spacing-medium);
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+/* Player Hand Area (Bottom) */
+.player-hand-area {
+    flex-direction: column;
+    align-items: center;
+    padding: var(--spacing-medium);
+    min-height: 200px;
+}
+
+.player-name {
+    font-size: var(--font-size-medium);
+    color: var(--color-text-light);
+    margin-bottom: var(--spacing-small);
+    -unity-font-style: bold;
+}
+
+/* Player Actions Container */
+.player-actions {
+    flex-direction: row;
+    justify-content: center;
+    margin-top: var(--spacing-medium);
+}
+
+/* Button Styles */
+.button-primary {
+    background-color: var(--color-primary);
+    color: var(--color-text-dark);
+    border-radius: 8px;
+    padding: var(--spacing-small) var(--spacing-large);
+    font-size: var(--font-size-medium);
+    margin: 0 var(--spacing-small);
+    border-width: 2px;
+    border-color: rgba(0, 0, 0, 0.3);
+    transition-duration: var(--transition-fast);
+}
+
+.button-primary:hover {
+    background-color: var(--color-primary-hover);
+    scale: 1.05;
+}
+
+.button-primary:active {
+    scale: 0.95;
+}
+
+.button-primary:disabled {
+    background-color: rgba(150, 150, 150, 0.5);
+    color: rgba(0, 0, 0, 0.3);
+}
+
+.button-secondary {
+    background-color: rgba(100, 100, 100, 0.8);
+    color: var(--color-text-light);
+    border-radius: 8px;
+    padding: var(--spacing-small) var(--spacing-large);
+    font-size: var(--font-size-medium);
+    margin: 0 var(--spacing-small);
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.3);
+    transition-duration: var(--transition-fast);
+}
+
+.button-secondary:hover {
+    background-color: rgba(120, 120, 120, 0.9);
+    scale: 1.05;
+}
+
+.button-secondary:active {
+    scale: 0.95;
+}
+
+.button-secondary:disabled {
+    background-color: rgba(80, 80, 80, 0.5);
+    color: rgba(255, 255, 255, 0.3);
+}
+
+/* Game End Screen */
+.game-end-screen {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: var(--color-overlay-bg);
+    align-items: center;
+    justify-content: center;
+}
+
+.game-end-screen--hidden {
+    display: none;
+}
+
+.game-end-panel {
+    background-color: var(--color-panel-bg);
+    border-radius: 16px;
+    padding: var(--spacing-xlarge);
+    align-items: center;
+    border-width: 4px;
+    border-color: var(--color-primary);
+}
+
+.winner-text {
+    font-size: var(--font-size-xlarge);
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-large);
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}

@@ -1,0 +1,24 @@
+/**
+ * Hand.uss - Hand Container Styles
+ * Defines hand container layout for player and opponent hands
+ */
+
+/* Hand Container (Base) */
+.hand-container {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: var(--spacing-small);
+    min-height: 140px;
+}
+
+/* Modifier: Player Hand */
+.hand-container--player {
+    align-items: flex-end;
+}
+
+/* Modifier: Opponent Hand */
+.hand-container--opponent {
+    align-items: flex-start;
+}
