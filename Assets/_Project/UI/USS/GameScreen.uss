@@ -30,18 +30,6 @@
     border-radius: 16px;
     padding: var(--spacing-large);
     margin: var(--spacing-medium) 0;
-    border-width: 3px;
-    border-color: rgba(255, 255, 255, 0.2);
-    border-style: dashed;
-    transition-duration: var(--transition-fast);
-    transition-property: border-color, background-color;
-}
-
-/* Field Area Hover State (during drag) */
-.field-area--drag-over {
-    border-color: var(--color-primary);
-    border-style: solid;
-    background-color: rgba(255, 215, 0, 0.1);
 }
 
 .field-cards {
