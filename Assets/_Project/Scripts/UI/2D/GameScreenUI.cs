@@ -58,6 +58,11 @@ namespace Daifugo.UI
         private VisualElement playerHandContainer;
         private VisualElement fieldCardsContainer;
 
+        // Opponent UI elements
+        private VisualElement opponent1HandContainer;
+        private VisualElement opponent2HandContainer;
+        private VisualElement opponent3HandContainer;
+
         // Hand UI components
         private HandUI playerHandUI;
 
@@ -83,6 +88,11 @@ namespace Daifugo.UI
             restartButton = root.Q<Button>("RestartButton");
             playerHandContainer = root.Q<VisualElement>("PlayerHandContainer");
             fieldCardsContainer = root.Q<VisualElement>("FieldCardsContainer");
+
+            // Query opponent hand containers
+            opponent1HandContainer = root.Q<VisualElement>("Opponent1HandContainer");
+            opponent2HandContainer = root.Q<VisualElement>("Opponent2HandContainer");
+            opponent3HandContainer = root.Q<VisualElement>("Opponent3HandContainer");
 
             // Register button callbacks
             if (playCardButton != null)
@@ -195,6 +205,9 @@ namespace Daifugo.UI
 
             // Hide game end screen
             gameEndScreen?.AddToClassList("game-end-screen--hidden");
+
+            // Initialize opponent hands display
+            UpdateOpponentHands();
         }
 
         /// <summary>
@@ -350,6 +363,9 @@ namespace Daifugo.UI
             // Display card on field
             DisplayCardOnField(eventData.FieldCard);
 
+            // Update opponent hands display
+            UpdateOpponentHands();
+
             // Update playable cards highlight
             UpdatePlayableCardsHighlight();
         }
@@ -411,6 +427,47 @@ namespace Daifugo.UI
 
             // Highlight playable cards
             playerHandUI.HighlightPlayableCards(playableCards);
+        }
+
+        /// <summary>
+        /// Updates opponent hand displays (card backs)
+        /// Shows card backs based on number of cards in each opponent's hand
+        /// </summary>
+        private void UpdateOpponentHands()
+        {
+            if (playerHands == null || playerHands.Length < 4) return;
+
+            // Update CPU 1 (Player ID 1)
+            UpdateOpponentHandDisplay(opponent1HandContainer, playerHands[1]);
+
+            // Update CPU 2 (Player ID 2)
+            UpdateOpponentHandDisplay(opponent2HandContainer, playerHands[2]);
+
+            // Update CPU 3 (Player ID 3)
+            UpdateOpponentHandDisplay(opponent3HandContainer, playerHands[3]);
+        }
+
+        /// <summary>
+        /// Updates a single opponent's hand display
+        /// </summary>
+        /// <param name="container">Container to display card backs in</param>
+        /// <param name="hand">Opponent's hand data</param>
+        private void UpdateOpponentHandDisplay(VisualElement container, PlayerHandSO hand)
+        {
+            if (container == null || hand == null) return;
+
+            // Clear existing card backs
+            container.Clear();
+
+            // Create card back elements based on card count
+            int cardCount = hand.CardCount;
+            for (int i = 0; i < cardCount; i++)
+            {
+                VisualElement cardBack = new VisualElement();
+                cardBack.AddToClassList("card");
+                cardBack.AddToClassList("card--opponent");
+                container.Add(cardBack);
+            }
         }
     }
 }

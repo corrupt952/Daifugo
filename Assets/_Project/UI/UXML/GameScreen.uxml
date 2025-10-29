@@ -17,10 +17,25 @@
     <!-- Main Game Screen Container -->
     <ui:VisualElement name="GameScreen" class="game-screen">
 
-        <!-- Opponent Area (Top) -->
-        <ui:VisualElement name="OpponentArea" class="opponent-area">
-            <ui:Label name="OpponentNameText" class="player-name" text="CPU 1" />
-            <ui:VisualElement name="OpponentHandContainer" class="hand-container hand-container--opponent" />
+        <!-- Opponents Area (Top) - 3 CPU Players -->
+        <ui:VisualElement name="OpponentsArea" class="opponents-area">
+            <!-- CPU 1 (Player ID 1) -->
+            <ui:VisualElement name="Opponent1Area" class="opponent-box">
+                <ui:Label name="Opponent1Name" class="opponent-name" text="CPU 1" />
+                <ui:VisualElement name="Opponent1HandContainer" class="opponent-hand-container" />
+            </ui:VisualElement>
+
+            <!-- CPU 2 (Player ID 2) -->
+            <ui:VisualElement name="Opponent2Area" class="opponent-box">
+                <ui:Label name="Opponent2Name" class="opponent-name" text="CPU 2" />
+                <ui:VisualElement name="Opponent2HandContainer" class="opponent-hand-container" />
+            </ui:VisualElement>
+
+            <!-- CPU 3 (Player ID 3) -->
+            <ui:VisualElement name="Opponent3Area" class="opponent-box">
+                <ui:Label name="Opponent3Name" class="opponent-name" text="CPU 3" />
+                <ui:VisualElement name="Opponent3HandContainer" class="opponent-hand-container" />
+            </ui:VisualElement>
         </ui:VisualElement>
 
         <!-- Field Area (Center) -->

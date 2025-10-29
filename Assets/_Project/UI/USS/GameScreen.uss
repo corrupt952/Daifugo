@@ -12,12 +12,41 @@
     padding: var(--spacing-large);
 }
 
-/* Opponent Area (Top) */
-.opponent-area {
+/* Opponents Area (Top) - Container for 3 CPUs */
+.opponents-area {
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: flex-start;
+    padding: var(--spacing-medium);
+    min-height: 150px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+/* Individual Opponent Box */
+.opponent-box {
     flex-direction: column;
     align-items: center;
-    padding: var(--spacing-medium);
-    min-height: 180px;
+    padding: var(--spacing-small);
+    min-width: 150px;
+}
+
+/* Opponent Name Label */
+.opponent-name {
+    font-size: var(--font-size-medium);
+    color: var(--color-text-light);
+    margin-bottom: var(--spacing-small);
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+/* Opponent Hand Container (for card backs) */
+.opponent-hand-container {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    min-height: 80px;
 }
 
 /* Field Area (Center) */

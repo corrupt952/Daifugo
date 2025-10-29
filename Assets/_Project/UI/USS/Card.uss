@@ -44,9 +44,15 @@
     opacity: 0.8;
 }
 
-/* Modifier: card--opponent (face-down card back) */
+/* Modifier: card--opponent (face-down card back for opponent hands) */
 .card--opponent {
-    scale: 0.8;
+    scale: 0.6;
+    width: 50px;
+    height: 70px;
+    background-color: rgba(30, 60, 120, 0.9);
+    border-radius: 4px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* Pseudo-class: hover */
