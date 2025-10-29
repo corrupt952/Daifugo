@@ -55,6 +55,12 @@
     border-color: rgba(255, 255, 255, 0.3);
 }
 
+/* Modifier: card--animating (card being animated to field) */
+.card--animating {
+    scale: 1.2;
+    transition-duration: 0s;
+}
+
 /* Pseudo-class: hover */
 .card:hover {
     scale: 1.05;

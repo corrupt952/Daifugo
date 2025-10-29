@@ -1,5 +1,7 @@
 using Daifugo.Data;
 using Daifugo.Events;
+using LitMotion;
+using LitMotion.Extensions;
 using Tang3cko.EventChannels;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -354,20 +356,94 @@ namespace Daifugo.UI
         /// </summary>
         private void HandleCardPlayed(CardPlayedEventData eventData)
         {
+            // Get the source card position for animation (before refreshing hand)
+            Rect? sourceCardRect = null;
+            if (eventData.PlayerID == 0 && playerHandUI != null)
+            {
+                // Try to find the card UI element and get its position before refreshing hand
+                CardUI cardUI = playerHandUI.GetCardUI(eventData.FieldCard);
+                if (cardUI?.Element != null && cardUI.Element.panel != null)
+                {
+                    sourceCardRect = cardUI.Element.worldBound;
+                }
+            }
+
             // Refresh player hand only if it was the human player who played
             if (eventData.PlayerID == 0)
             {
                 RefreshPlayerHand();
             }
 
-            // Display card on field
-            DisplayCardOnField(eventData.FieldCard);
+            // Animate card to field if source position is available, otherwise display immediately
+            if (sourceCardRect.HasValue)
+            {
+                AnimateCardToField(eventData.FieldCard, sourceCardRect.Value);
+            }
+            else
+            {
+                // Display card on field immediately for CPU players or if animation not possible
+                DisplayCardOnField(eventData.FieldCard);
+            }
 
             // Update opponent hands display
             UpdateOpponentHands();
 
             // Update playable cards highlight
             UpdatePlayableCardsHighlight();
+        }
+
+        /// <summary>
+        /// Animates a card from its source position to the field using LitMotion
+        /// </summary>
+        /// <param name="card">The card to animate</param>
+        /// <param name="sourceRect">The source card position (worldBound)</param>
+        private void AnimateCardToField(CardSO card, Rect sourceRect)
+        {
+            if (fieldCardsContainer == null || card == null) return;
+
+            // Get target position in root space
+            Rect targetRect = fieldCardsContainer.worldBound;
+
+            // Calculate target center position
+            Vector2 targetCenter = new Vector2(
+                targetRect.center.x - sourceRect.width / 2f,
+                targetRect.center.y - sourceRect.height / 2f
+            );
+
+            // Create animated card element (clone)
+            CardUI animatedCardUI = new CardUI(card);
+            VisualElement animatedCard = animatedCardUI.Element;
+
+            // Set absolute positioning
+            animatedCard.style.position = Position.Absolute;
+            animatedCard.style.left = sourceRect.x;
+            animatedCard.style.top = sourceRect.y;
+            animatedCard.AddToClassList("card--animating");
+
+            // Add to root for absolute positioning
+            root.Add(animatedCard);
+
+            // Animation parameters
+            float animationDuration = 0.3f; // 300ms
+            Vector2 startPos = new Vector2(sourceRect.x, sourceRect.y);
+
+            // Animate using LitMotion (frame-rate independent)
+            LMotion.Create(startPos, targetCenter, animationDuration)
+                .WithEase(Ease.OutCubic)
+                .WithOnComplete(() =>
+                {
+                    // Remove animated card
+                    root.Remove(animatedCard);
+
+                    // Display actual card on field
+                    DisplayCardOnField(card);
+                })
+                .Bind(pos =>
+                {
+                    // Update position during animation
+                    animatedCard.style.left = pos.x;
+                    animatedCard.style.top = pos.y;
+                });
         }
 
         /// <summary>
