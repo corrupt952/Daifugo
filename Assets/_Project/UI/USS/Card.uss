@@ -44,18 +44,28 @@
     opacity: 0.8;
 }
 
-/* Modifier: card--opponent (face-down card back for opponent hands) */
+/* ========================================
+   Card Modifiers
+   ======================================== */
+
+/* Modifier: card--opponent (face-down card back for opponent hands)
+   Used in UpdateOpponentHandDisplay to show card backs
+   Static display only - uses background-color instead of sprite */
 .card--opponent {
-    scale: 0.6;
-    width: 50px;
-    height: 70px;
+    scale: 0.8;
+    width: 64px;
+    height: 96px;
+    margin: 2px;
     background-color: rgba(30, 60, 120, 0.9);
     border-radius: 4px;
     border-width: 2px;
     border-color: rgba(255, 255, 255, 0.3);
 }
 
-/* Modifier: card--animating (card being animated to field) */
+/* Modifier: card--animating (card being animated to field)
+   Used during card movement animations (LitMotion-driven in AnimateCardToField/AnimateCPUCardToField)
+   Disables USS transitions to prevent conflicts with programmatic animations
+   Scale: 1.2 for visual emphasis during animation */
 .card--animating {
     scale: 1.2;
     transition-duration: 0s;

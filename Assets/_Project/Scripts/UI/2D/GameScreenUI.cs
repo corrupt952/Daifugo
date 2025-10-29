@@ -18,6 +18,10 @@ namespace Daifugo.UI
         [Tooltip("Player hands (0 = Human, 1-3 = AI)")]
         [SerializeField] private PlayerHandSO[] playerHands = new PlayerHandSO[4];
 
+        [Header("Card Visuals")]
+        [Tooltip("Card back sprite for CPU animations")]
+        [SerializeField] private Sprite cardBackSprite;
+
         [Header("Runtime State")]
         [Tooltip("Current player ID (managed via events)")]
         private int currentPlayerID = -1;
@@ -374,15 +378,24 @@ namespace Daifugo.UI
                 RefreshPlayerHand();
             }
 
-            // Animate card to field if source position is available, otherwise display immediately
-            if (sourceCardRect.HasValue)
+            // Animate card based on player type
+            if (eventData.PlayerID == 0)
             {
-                AnimateCardToField(eventData.FieldCard, sourceCardRect.Value);
+                // Human player: animate from hand position if available
+                if (sourceCardRect.HasValue)
+                {
+                    AnimateCardToField(eventData.FieldCard, sourceCardRect.Value);
+                }
+                else
+                {
+                    // Fallback: display immediately
+                    DisplayCardOnField(eventData.FieldCard);
+                }
             }
             else
             {
-                // Display card on field immediately for CPU players or if animation not possible
-                DisplayCardOnField(eventData.FieldCard);
+                // CPU player: animate with flip from opponent hand
+                AnimateCPUCardToField(eventData.FieldCard, eventData.PlayerID);
             }
 
             // Update opponent hands display
@@ -443,6 +456,126 @@ namespace Daifugo.UI
                     // Update position during animation
                     animatedCard.style.left = pos.x;
                     animatedCard.style.top = pos.y;
+                });
+        }
+
+        /// <summary>
+        /// Animates a CPU card from opponent hand to field with flip animation
+        /// </summary>
+        /// <param name="card">The card to animate</param>
+        /// <param name="cpuPlayerID">CPU player ID (1-3)</param>
+        private void AnimateCPUCardToField(CardSO card, int cpuPlayerID)
+        {
+            if (fieldCardsContainer == null || card == null || cardBackSprite == null) return;
+
+            // Get opponent hand container based on CPU player ID
+            VisualElement opponentHandContainer = cpuPlayerID switch
+            {
+                1 => opponent1HandContainer,
+                2 => opponent2HandContainer,
+                3 => opponent3HandContainer,
+                _ => null
+            };
+
+            if (opponentHandContainer == null) return;
+
+            // Get center position of opponent hand container
+            Rect opponentRect = opponentHandContainer.worldBound;
+            Vector2 startPos = new Vector2(
+                opponentRect.center.x,
+                opponentRect.center.y
+            );
+
+            // Get target position (field center)
+            Rect targetRect = fieldCardsContainer.worldBound;
+
+            // Card dimensions defined in Common.uss (.card style)
+            // IMPORTANT: Keep these values synchronized with Common.uss
+            // Common.uss: .card { width: var(--card-width); } where --card-width: 80px
+            const float CARD_WIDTH = 80f;
+            const float CARD_HEIGHT = 120f;
+            const float CARD_HALF_WIDTH = CARD_WIDTH / 2f;   // 40px
+            const float CARD_HALF_HEIGHT = CARD_HEIGHT / 2f; // 60px
+
+            Vector2 targetCenter = new Vector2(
+                targetRect.center.x,
+                targetRect.center.y
+            );
+
+            // Create animated card element with card back (normal size)
+            VisualElement animatedCard = new VisualElement();
+            animatedCard.AddToClassList("card");
+            animatedCard.AddToClassList("card--animating");
+
+            // Add card back image
+            VisualElement cardImage = new VisualElement();
+            cardImage.AddToClassList("card__image");
+            cardImage.style.backgroundImage = new StyleBackground(cardBackSprite);
+            animatedCard.Add(cardImage);
+
+            // Set absolute positioning at start position
+            animatedCard.style.position = Position.Absolute;
+            animatedCard.style.left = startPos.x - CARD_HALF_WIDTH;
+            animatedCard.style.top = startPos.y - CARD_HALF_HEIGHT;
+
+            // Add to root
+            root.Add(animatedCard);
+
+            // Animation parameters
+            float moveDuration = 0.3f;
+
+            // Step 1: Move animation
+            LMotion.Create(startPos, targetCenter, moveDuration)
+                .WithEase(Ease.OutCubic)
+                .WithOnComplete(() =>
+                {
+                    // Step 2: Flip animation after landing
+                    AnimateCardFlip(animatedCard, cardImage, card);
+                })
+                .Bind(pos =>
+                {
+                    animatedCard.style.left = pos.x - CARD_HALF_WIDTH;
+                    animatedCard.style.top = pos.y - CARD_HALF_HEIGHT;
+                });
+        }
+
+        /// <summary>
+        /// Animates card flip from back to front
+        /// </summary>
+        /// <param name="cardElement">The card visual element</param>
+        /// <param name="imageElement">The card image element</param>
+        /// <param name="card">The card data</param>
+        private void AnimateCardFlip(VisualElement cardElement, VisualElement imageElement, CardSO card)
+        {
+            float flipDuration = 0.2f;
+
+            // Flip animation: scaleX 1 -> 0 -> 1
+            LMotion.Create(1f, 0f, flipDuration / 2f)
+                .WithEase(Ease.InCubic)
+                .WithOnComplete(() =>
+                {
+                    // Switch to card front at scaleX = 0
+                    imageElement.style.backgroundImage = new StyleBackground(card.CardSprite);
+
+                    // Flip back: scaleX 0 -> 1
+                    LMotion.Create(0f, 1f, flipDuration / 2f)
+                        .WithEase(Ease.OutCubic)
+                        .WithOnComplete(() =>
+                        {
+                            // Remove animated card
+                            root.Remove(cardElement);
+
+                            // Display actual card on field
+                            DisplayCardOnField(card);
+                        })
+                        .Bind(scale =>
+                        {
+                            cardElement.style.scale = new Scale(new Vector3(scale, 1f, 1f));
+                        });
+                })
+                .Bind(scale =>
+                {
+                    cardElement.style.scale = new Scale(new Vector3(scale, 1f, 1f));
                 });
         }
 
@@ -530,7 +663,7 @@ namespace Daifugo.UI
         /// <param name="hand">Opponent's hand data</param>
         private void UpdateOpponentHandDisplay(VisualElement container, PlayerHandSO hand)
         {
-            if (container == null || hand == null) return;
+            if (container == null || hand == null || cardBackSprite == null) return;
 
             // Clear existing card backs
             container.Clear();
@@ -542,6 +675,13 @@ namespace Daifugo.UI
                 VisualElement cardBack = new VisualElement();
                 cardBack.AddToClassList("card");
                 cardBack.AddToClassList("card--opponent");
+
+                // Add card back image
+                VisualElement cardImage = new VisualElement();
+                cardImage.AddToClassList("card__image");
+                cardImage.style.backgroundImage = new StyleBackground(cardBackSprite);
+                cardBack.Add(cardImage);
+
                 container.Add(cardBack);
             }
         }
