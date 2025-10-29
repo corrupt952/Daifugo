@@ -236,29 +236,5 @@ namespace Daifugo.Core
                 onGameEnded.RaiseEvent(winnerID);
             }
         }
-
-        /// <summary>
-        /// Gets the current field card
-        /// </summary>
-        public CardSO GetCurrentFieldCard()
-        {
-            return currentFieldCard;
-        }
-
-        /// <summary>
-        /// Checks if game is currently active
-        /// </summary>
-        public bool IsGameActive()
-        {
-            return isGameActive;
-        }
-
-        /// <summary>
-        /// Gets the player hands array (for AI and UI access)
-        /// </summary>
-        public PlayerHandSO[] GetPlayerHands()
-        {
-            return playerHands;
-        }
     }
 }

@@ -11,10 +11,6 @@ namespace Daifugo.AI
     /// </summary>
     public class AIPlayer : MonoBehaviour
     {
-        [Header("Components")]
-        [Tooltip("Rule validator for checking playable cards")]
-        [SerializeField] private RuleValidator ruleValidator;
-
         /// <summary>
         /// Decides which card to play or whether to pass
         /// </summary>
