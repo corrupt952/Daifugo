@@ -21,6 +21,7 @@
 
 - **[ScriptableObject](coding_standards/architecture/scriptableobject.md)** - データ管理パターン
 - **[EventChannel](coding_standards/architecture/event-channels.md)** - イベント駆動通信
+- **[Variables](coding_standards/architecture/variables.md)** - リアクティブ変数管理
 - **[RuntimeSet](coding_standards/architecture/runtime-sets.md)** - 動的オブジェクト管理
 - **[依存関係管理](coding_standards/architecture/dependency-management.md)** - 優先順位と実装パターン
 - **[拡張パターン](coding_standards/architecture/extension-patterns.md)** - 新機能追加フロー
@@ -39,6 +40,7 @@
 
 - **[良い例: EventChannel](coding_standards/examples/good/event-channel-example.cs)**
 - **[良い例: ScriptableObject](coding_standards/examples/good/scriptableobject-example.cs)**
+- **[良い例: Variables](coding_standards/examples/good/variable-example.cs)**
 - **[アンチパターン: Singleton乱用](coding_standards/examples/anti-patterns/singleton-abuse.cs)**
 - **[アンチパターン: Update重い処理](coding_standards/examples/anti-patterns/update-heavy.cs)**
 
@@ -350,6 +352,11 @@ Assets/_Project/ScriptableObjects/
 │   ├── OnGameStarted.asset
 │   ├── OnCardPlayed.asset
 │   └── OnTurnChanged.asset
+│
+├── Variables/
+│   ├── CurrentTurnIndex.asset
+│   ├── SelectedCardCount.asset
+│   └── IsRevolutionActive.asset
 │
 └── RuntimeSets/
     └── PlayerSet.asset
