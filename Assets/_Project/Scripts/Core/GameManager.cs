@@ -42,20 +42,19 @@ namespace Daifugo.Core
         [Tooltip("Turn manager component")]
         [SerializeField] private TurnManager turnManager;
 
-        [Tooltip("Rule validator component")]
-        [SerializeField] private RuleValidator ruleValidator;
-
         // Runtime state (no Variables - see C-008)
         private CardSO currentFieldCard;
         private bool isGameActive;
 
-        // Pure C# game logic (testable)
+        // Services (pure C# classes - testable)
         private GameLogic gameLogic;
+        private RuleValidator ruleValidator;
 
         private void Awake()
         {
-            // Initialize pure C# game logic
+            // Initialize pure C# services
             gameLogic = new GameLogic();
+            ruleValidator = new RuleValidator();
         }
 
         private void OnEnable()

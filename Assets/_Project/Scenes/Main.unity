@@ -523,7 +523,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1449773114}
   - component: {fileID: 1449773116}
-  - component: {fileID: 1449773115}
   m_Layer: 0
   m_Name: AIController
   m_TagString: Untagged
@@ -546,18 +545,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1449773115
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1449773113}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9e92ca12672bf44cdbae6dfa2b867064, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Daifugo.AI.AIPlayer
 --- !u!114 &1449773116
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -576,7 +563,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 4761eef54930a44669a6bec6b17068a2, type: 2}
   - {fileID: 11400000, guid: 1d43dce9d354b420daacd3aae92690b0, type: 2}
   - {fileID: 11400000, guid: f9fdc8a639cf54f049c8061c11611393, type: 2}
-  aiPlayer: {fileID: 1449773115}
   onGameStarted: {fileID: 11400000, guid: 1e559a098bd1048a1921013bec63c699, type: 2}
   onTurnChanged: {fileID: 11400000, guid: 3052b07f623664ad6a2f90f0c08f9901, type: 2}
   onCardPlayed: {fileID: 11400000, guid: c64d5e50975ed488b890e2270acf9439, type: 2}
@@ -595,7 +581,6 @@ GameObject:
   - component: {fileID: 1612777159}
   - component: {fileID: 1612777162}
   - component: {fileID: 1612777161}
-  - component: {fileID: 1612777160}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -618,18 +603,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1612777160
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1612777158}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 104ff36710bbc492e877e78600b074cd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Daifugo.Core.RuleValidator
 --- !u!114 &1612777161
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -669,7 +642,6 @@ MonoBehaviour:
   onFieldReset: {fileID: 11400000, guid: 78b7ac6c0fc6b47699429d9ecd2e454a, type: 2}
   onGameEnded: {fileID: 11400000, guid: d9f22a0ca0e104764b746a7bb0204053, type: 2}
   turnManager: {fileID: 1612777161}
-  ruleValidator: {fileID: 1612777160}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

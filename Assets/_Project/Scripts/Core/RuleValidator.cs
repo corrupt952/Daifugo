@@ -5,9 +5,10 @@ namespace Daifugo.Core
 {
     /// <summary>
     /// Validates Daifugo game rules for card plays
+    /// Pure C# class (no MonoBehaviour) for testability
     /// Implements IRuleValidator for testability
     /// </summary>
-    public class RuleValidator : MonoBehaviour, IRuleValidator
+    public class RuleValidator : IRuleValidator
     {
         /// <summary>
         /// Checks if a card can be played given the current field state

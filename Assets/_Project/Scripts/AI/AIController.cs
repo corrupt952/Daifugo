@@ -20,10 +20,6 @@ namespace Daifugo.AI
         [Tooltip("Player hands array (0 = Human, 1-3 = AI)")]
         [SerializeField] private PlayerHandSO[] playerHands;
 
-        [Header("Components")]
-        [Tooltip("AI decision logic component")]
-        [SerializeField] private AIPlayer aiPlayer;
-
         [Header("Events - Subscribe")]
         [Tooltip("Raised when game starts")]
         [SerializeField] private VoidEventChannelSO onGameStarted;
@@ -50,6 +46,15 @@ namespace Daifugo.AI
         // Runtime state (tracks field state from events)
         private CardSO currentFieldCard;
         private bool isGameActive;
+
+        // Services (pure C# classes - testable)
+        private AIPlayerStrategy aiStrategy;
+
+        private void Awake()
+        {
+            // Initialize pure C# AI strategy
+            aiStrategy = new AIPlayerStrategy();
+        }
 
         private void OnEnable()
         {
@@ -138,8 +143,8 @@ namespace Daifugo.AI
             // Get AI player's hand
             PlayerHandSO aiHand = playerHands[aiPlayerID];
 
-            // Use locally tracked currentFieldCard
-            CardSO cardToPlay = aiPlayer.DecideAction(aiHand, currentFieldCard);
+            // Use AI strategy to decide action
+            CardSO cardToPlay = aiStrategy.DecideAction(aiHand, currentFieldCard);
 
             // Raise command event based on decision
             if (cardToPlay != null)

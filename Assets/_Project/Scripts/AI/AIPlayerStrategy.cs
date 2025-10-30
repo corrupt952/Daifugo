@@ -1,15 +1,14 @@
 using System.Linq;
-using Daifugo.Core;
 using Daifugo.Data;
-using UnityEngine;
 
 namespace Daifugo.AI
 {
     /// <summary>
     /// AI decision logic for computer players
+    /// Pure C# class (no MonoBehaviour) for testability
     /// Implements simple greedy strategy: play weakest valid card
     /// </summary>
-    public class AIPlayer : MonoBehaviour
+    public class AIPlayerStrategy
     {
         /// <summary>
         /// Decides which card to play or whether to pass
@@ -19,6 +18,12 @@ namespace Daifugo.AI
         /// <returns>Card to play, or null to pass</returns>
         public CardSO DecideAction(PlayerHandSO hand, CardSO fieldCard)
         {
+            // Validate inputs
+            if (hand == null)
+            {
+                return null;
+            }
+
             // 1. Get playable cards based on field strength
             int fieldStrength = fieldCard?.GetStrength() ?? 0;
             var playableCards = hand.GetPlayableCards(fieldStrength);

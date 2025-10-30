@@ -9,6 +9,7 @@ namespace Daifugo.Tests.Core
     /// <summary>
     /// Tests for RuleValidator class
     /// Validates card play rules according to Daifugo game logic
+    /// Pure C# class - no Unity dependencies required for testing
     /// </summary>
     public class RuleValidatorTests
     {
@@ -16,13 +17,12 @@ namespace Daifugo.Tests.Core
 
         /// <summary>
         /// Sets up test fixtures before each test
-        /// Creates a GameObject with RuleValidator component
+        /// Creates a pure C# RuleValidator instance
         /// </summary>
         [SetUp]
         public void Setup()
         {
-            GameObject gameObject = new GameObject("RuleValidator");
-            ruleValidator = gameObject.AddComponent<RuleValidator>();
+            ruleValidator = new RuleValidator();
         }
 
         /// <summary>
@@ -31,10 +31,7 @@ namespace Daifugo.Tests.Core
         [TearDown]
         public void Teardown()
         {
-            if (ruleValidator != null)
-            {
-                Object.DestroyImmediate(ruleValidator.gameObject);
-            }
+            ruleValidator = null;
         }
 
         #region CanPlayCard Tests
