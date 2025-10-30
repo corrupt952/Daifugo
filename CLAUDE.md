@@ -119,7 +119,8 @@ docs/
 
 ## References
 
-- **[Coding Standards](docs/03_technical/coding_standards.md)** - 技術スタック、アーキテクチャ原則、実装パターン
+- **[Coding Standards](docs/03_technical/coding_standards.md)** - Daifugo固有のコーディング規約
+- **[共通コーディング規約](docs/03_technical/coding_standards/README.md)** - 全プロジェクト共通ルール（ディレクトリ構造、ファイル一覧）
 - **[SpecKit GitHub](https://github.com/github/spec-kit)** - Spec-Driven Development本家
 - **[SpecKit Quick Start](https://github.com/github/spec-kit#quick-start)** - ワークフロー詳細
 - **[SpecKit Templates](https://github.com/github/spec-kit/tree/main/templates)** - spec/plan/tasksテンプレート

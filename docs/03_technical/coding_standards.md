@@ -8,6 +8,8 @@
 
 **基本的なコーディング規約は、プロジェクト共通の規約に従ってください：**
 
+📖 **[共通コーディング規約の全体像](coding_standards/README.md)** - ディレクトリ構造、ファイル一覧、プロジェクトタイプ別ガイド
+
 ### Core規約
 
 - **[命名規則](coding_standards/core/naming-conventions.md)** - クラス、変数、メソッドの命名ルール
