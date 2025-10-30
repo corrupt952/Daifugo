@@ -51,15 +51,22 @@ namespace Daifugo.Core
             if (card == null) return false;
             if (fieldState.IsEmpty) return true;
 
-            // Phase 1: 基本的な強度比較のみ
+            // Phase 2: 縛りルールチェック
+            if (fieldState.IsBindingActive(gameRules))
+            {
+                var bindingSuit = fieldState.GetBindingSuit(gameRules);
+                if (bindingSuit.HasValue && card.CardSuit != bindingSuit.Value)
+                {
+                    return false; // 縛り中は同じスートのみ
+                }
+            }
+
+            // 基本的な強度比較
             return card.GetStrength() > fieldState.Strength;
 
-            // Phase 2以降: 革命、縛りなどのルール判定を追加
+            // Phase 2以降: 革命などのルール判定を追加予定
             // if (gameRules.IsRevolutionEnabled && fieldState.IsRevolutionActive)
             //     return card.GetStrength() < fieldState.Strength;
-            //
-            // if (gameRules.IsBindEnabled && fieldState.IsBindActive)
-            //     return card.CardSuit == fieldState.BindSuit && card.GetStrength() > fieldState.Strength;
         }
 
         /// <summary>

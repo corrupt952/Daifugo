@@ -37,14 +37,14 @@ namespace Daifugo.Tests.Core
             CardSO card = TestHelpers.CreateCardByRank(5);
             CardSO card2 = TestHelpers.CreateCardByRank(7);
             PlayerHandSO hand = TestHelpers.CreateHand(0, card, card2);
-            CardSO emptyField = null;
+            FieldState fieldState = FieldState.Empty();
 
             // Act
-            CardPlayResult result = gameLogic.PlayCard(card, hand, emptyField);
+            CardPlayResult result = gameLogic.PlayCard(card, hand, fieldState);
 
             // Assert
             Assert.IsTrue(result.IsSuccess, "Card play should succeed");
-            Assert.AreEqual(card, result.NewFieldCard, "Field card should be the played card");
+            Assert.AreEqual(card, result.NewFieldState.CurrentCard, "Field card should be the played card");
             Assert.IsFalse(result.IsWin, "Should not win with cards remaining");
             Assert.IsFalse(result.ShouldResetField, "Non-8 card should not reset field");
             Assert.AreEqual(TurnAdvanceType.NextPlayer, result.TurnAdvanceType, "Normal card play should advance to next player");
@@ -59,15 +59,15 @@ namespace Daifugo.Tests.Core
             // Arrange
             CardSO card = TestHelpers.CreateCardByRank(7);
             CardSO card2 = TestHelpers.CreateCardByRank(10);
-            CardSO fieldCard = TestHelpers.CreateCardByRank(5);
+            FieldState fieldState = FieldState.AddCard(FieldState.Empty(), TestHelpers.CreateCardByRank(5));
             PlayerHandSO hand = TestHelpers.CreateHand(0, card, card2);
 
             // Act
-            CardPlayResult result = gameLogic.PlayCard(card, hand, fieldCard);
+            CardPlayResult result = gameLogic.PlayCard(card, hand, fieldState);
 
             // Assert
             Assert.IsTrue(result.IsSuccess, "Playing stronger card should succeed");
-            Assert.AreEqual(card, result.NewFieldCard, "Field should update to new card");
+            Assert.AreEqual(card, result.NewFieldState.CurrentCard, "Field should update to new card");
             Assert.AreEqual(TurnAdvanceType.NextPlayer, result.TurnAdvanceType, "Normal card play should advance to next player");
         }
 
@@ -82,7 +82,7 @@ namespace Daifugo.Tests.Core
             PlayerHandSO hand = TestHelpers.CreateHand(0, lastCard);
 
             // Act
-            CardPlayResult result = gameLogic.PlayCard(lastCard, hand, null);
+            CardPlayResult result = gameLogic.PlayCard(lastCard, hand, FieldState.Empty());
 
             // Assert
             Assert.IsTrue(result.IsSuccess, "Last card play should succeed");
@@ -103,7 +103,7 @@ namespace Daifugo.Tests.Core
             PlayerHandSO hand = TestHelpers.CreateHand(0, card1, card2);
 
             // Act
-            CardPlayResult result = gameLogic.PlayCard(card1, hand, null);
+            CardPlayResult result = gameLogic.PlayCard(card1, hand, FieldState.Empty());
 
             // Assert
             Assert.IsTrue(result.IsSuccess, "Card play should succeed");
@@ -128,12 +128,12 @@ namespace Daifugo.Tests.Core
             PlayerHandSO hand = TestHelpers.CreateHand(0, card8, card2);
 
             // Act
-            CardPlayResult result = gameLogic.PlayCard(card8, hand, null);
+            CardPlayResult result = gameLogic.PlayCard(card8, hand, FieldState.Empty());
 
             // Assert
             Assert.IsTrue(result.IsSuccess, "8 card play should succeed");
             Assert.IsTrue(result.ShouldResetField, "8 should activate 8-cut rule");
-            Assert.AreEqual(card8, result.NewFieldCard, "Field should update to 8");
+            Assert.AreEqual(card8, result.NewFieldState.CurrentCard, "Field should update to 8");
             Assert.AreEqual(TurnAdvanceType.SamePlayer, result.TurnAdvanceType, "8-cut should keep same player");
         }
 
@@ -146,11 +146,11 @@ namespace Daifugo.Tests.Core
             // Arrange
             CardSO card8 = TestHelpers.CreateCardByRank(8);
             CardSO card2 = TestHelpers.CreateCardByRank(10);
-            CardSO fieldCard = TestHelpers.CreateCardByRank(5);
+            FieldState fieldState = FieldState.AddCard(FieldState.Empty(), TestHelpers.CreateCardByRank(5));
             PlayerHandSO hand = TestHelpers.CreateHand(0, card8, card2);
 
             // Act
-            CardPlayResult result = gameLogic.PlayCard(card8, hand, fieldCard);
+            CardPlayResult result = gameLogic.PlayCard(card8, hand, fieldState);
 
             // Assert
             Assert.IsTrue(result.IsSuccess, "8 play should succeed");
@@ -169,7 +169,7 @@ namespace Daifugo.Tests.Core
             PlayerHandSO hand = TestHelpers.CreateHand(0, card8);
 
             // Act
-            CardPlayResult result = gameLogic.PlayCard(card8, hand, null);
+            CardPlayResult result = gameLogic.PlayCard(card8, hand, FieldState.Empty());
 
             // Assert
             Assert.IsTrue(result.IsSuccess, "Last 8 play should succeed");
@@ -194,7 +194,7 @@ namespace Daifugo.Tests.Core
                 PlayerHandSO hand = TestHelpers.CreateHand(0, card, card2);
 
                 // Act
-                CardPlayResult result = gameLogic.PlayCard(card, hand, null);
+                CardPlayResult result = gameLogic.PlayCard(card, hand, FieldState.Empty());
 
                 // Assert
                 Assert.IsTrue(result.IsSuccess, $"Card {rank} play should succeed");
@@ -216,13 +216,13 @@ namespace Daifugo.Tests.Core
             PlayerHandSO hand = TestHelpers.CreateHand(0, card8, weakCard, card3);
 
             // Act - Play 8 first
-            CardPlayResult result1 = gameLogic.PlayCard(card8, hand, null);
+            CardPlayResult result1 = gameLogic.PlayCard(card8, hand, FieldState.Empty());
 
             // Assert - 8-cut should be triggered
             Assert.IsTrue(result1.ShouldResetField, "8 should trigger field reset");
 
             // Act - Play weak card on empty field (simulating field reset)
-            CardPlayResult result2 = gameLogic.PlayCard(weakCard, hand, null);
+            CardPlayResult result2 = gameLogic.PlayCard(weakCard, hand, FieldState.Empty());
 
             // Assert - Any card should be playable on empty field
             Assert.IsTrue(result2.IsSuccess, "Any card should be playable after 8-cut (empty field)");
@@ -245,12 +245,12 @@ namespace Daifugo.Tests.Core
             PlayerHandSO hand = TestHelpers.CreateHand(0, cardInHand); // Hand contains only card 7
 
             // Act
-            CardPlayResult result = gameLogic.PlayCard(cardNotInHand, hand, null);
+            CardPlayResult result = gameLogic.PlayCard(cardNotInHand, hand, FieldState.Empty());
 
             // Assert
             Assert.IsFalse(result.IsSuccess, "Card not in hand should fail");
             Assert.AreEqual("Card not in hand", result.ErrorMessage, "Error message should indicate card not in hand");
-            Assert.IsNull(result.NewFieldCard, "Field card should be null on failure");
+            Assert.IsTrue(result.NewFieldState.IsEmpty, "Field state should be empty on failure");
         }
 
         /// <summary>
@@ -261,11 +261,11 @@ namespace Daifugo.Tests.Core
         {
             // Arrange
             CardSO weakCard = TestHelpers.CreateCardByRank(3);
-            CardSO strongField = TestHelpers.CreateCardByRank(10);
+            FieldState fieldState = FieldState.AddCard(FieldState.Empty(), TestHelpers.CreateCardByRank(10));
             PlayerHandSO hand = TestHelpers.CreateHand(0, weakCard);
 
             // Act - Try to play weak card (3) on strong field (10)
-            CardPlayResult result = gameLogic.PlayCard(weakCard, hand, strongField);
+            CardPlayResult result = gameLogic.PlayCard(weakCard, hand, fieldState);
 
             // Assert
             Assert.IsFalse(result.IsSuccess, "Invalid card play should fail");
@@ -285,7 +285,7 @@ namespace Daifugo.Tests.Core
             int initialCardCount = hand.CardCount;
 
             // Act - Try to play card not in hand
-            CardPlayResult result = gameLogic.PlayCard(cardNotInHand, hand, null);
+            CardPlayResult result = gameLogic.PlayCard(cardNotInHand, hand, FieldState.Empty());
 
             // Assert
             Assert.IsFalse(result.IsSuccess, "Play should fail");
@@ -308,14 +308,14 @@ namespace Daifugo.Tests.Core
             PlayerHandSO hand = TestHelpers.CreateHand(0, card8_1, card8_2);
 
             // Act - Play first 8
-            CardPlayResult result1 = gameLogic.PlayCard(card8_1, hand, null);
+            CardPlayResult result1 = gameLogic.PlayCard(card8_1, hand, FieldState.Empty());
 
             // Assert - First 8
             Assert.IsTrue(result1.IsSuccess, "First 8 play should succeed");
             Assert.IsTrue(result1.ShouldResetField, "First 8 should activate 8-cut");
 
             // Act - Play second 8 (assuming field was reset)
-            CardPlayResult result2 = gameLogic.PlayCard(card8_2, hand, null);
+            CardPlayResult result2 = gameLogic.PlayCard(card8_2, hand, FieldState.Empty());
 
             // Assert - Second 8
             Assert.IsTrue(result2.IsSuccess, "Second 8 play should succeed");
@@ -335,7 +335,7 @@ namespace Daifugo.Tests.Core
             PlayerHandSO hand = TestHelpers.CreateHand(0, card8);
 
             // Act
-            CardPlayResult result = gameLogic.PlayCard(card8, hand, null);
+            CardPlayResult result = gameLogic.PlayCard(card8, hand, FieldState.Empty());
 
             // Assert
             Assert.IsTrue(result.IsSuccess, "Single 8 play should succeed");
@@ -358,7 +358,7 @@ namespace Daifugo.Tests.Core
             PlayerHandSO hand = TestHelpers.CreateHand(0, card1, card2, card3);
 
             // Act
-            CardPlayResult result = gameLogic.PlayCard(card2, hand, null);
+            CardPlayResult result = gameLogic.PlayCard(card2, hand, FieldState.Empty());
 
             // Assert
             Assert.IsTrue(result.IsSuccess, "Card play should succeed");
@@ -380,7 +380,7 @@ namespace Daifugo.Tests.Core
             PlayerHandSO hand = TestHelpers.CreateHand(0, validCard);
 
             // Act
-            CardPlayResult result = gameLogic.PlayCard(nullCard, hand, null);
+            CardPlayResult result = gameLogic.PlayCard(nullCard, hand, FieldState.Empty());
 
             // Assert
             Assert.IsFalse(result.IsSuccess, "Null card should fail");
@@ -398,7 +398,7 @@ namespace Daifugo.Tests.Core
             PlayerHandSO nullHand = null;
 
             // Act
-            CardPlayResult result = gameLogic.PlayCard(card, nullHand, null);
+            CardPlayResult result = gameLogic.PlayCard(card, nullHand, FieldState.Empty());
 
             // Assert
             Assert.IsFalse(result.IsSuccess, "Null hand should fail");
@@ -420,13 +420,13 @@ namespace Daifugo.Tests.Core
             PlayerHandSO hand = TestHelpers.CreateHand(0, card);
 
             // Act
-            CardPlayResult result = gameLogic.PlayCard(card, hand, null);
+            CardPlayResult result = gameLogic.PlayCard(card, hand, FieldState.Empty());
 
             // Assert
             Assert.IsTrue(result.IsSuccess, "Result should indicate success");
             Assert.IsNull(result.ErrorMessage, "Success should have no error message");
-            Assert.IsNotNull(result.NewFieldCard, "Success should have new field card");
-            Assert.AreEqual(card, result.NewFieldCard, "New field card should match played card");
+            Assert.IsFalse(result.NewFieldState.IsEmpty, "Success should have new field state");
+            Assert.AreEqual(card, result.NewFieldState.CurrentCard, "New field card should match played card");
         }
 
         /// <summary>
@@ -441,13 +441,13 @@ namespace Daifugo.Tests.Core
             PlayerHandSO hand = TestHelpers.CreateHand(0, cardInHand);
 
             // Act - Try to play card not in hand
-            CardPlayResult result = gameLogic.PlayCard(cardNotInHand, hand, null);
+            CardPlayResult result = gameLogic.PlayCard(cardNotInHand, hand, FieldState.Empty());
 
             // Assert
             Assert.IsFalse(result.IsSuccess, "Result should indicate failure");
             Assert.IsNotNull(result.ErrorMessage, "Failure should have error message");
             Assert.IsNotEmpty(result.ErrorMessage, "Error message should not be empty");
-            Assert.IsNull(result.NewFieldCard, "Failure should not have field card");
+            Assert.IsTrue(result.NewFieldState.IsEmpty, "Failure should have empty field state");
         }
 
         #endregion

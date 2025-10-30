@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using Daifugo.AI;
+using Daifugo.Core;
 using Daifugo.Data;
 using Daifugo.Tests.Helpers;
 using UnityEngine;
@@ -48,10 +49,10 @@ namespace Daifugo.Tests.AI
             CardSO card7 = TestHelpers.CreateCardByRank(7);   // Strength: 7
             CardSO card10 = TestHelpers.CreateCardByRank(10); // Strength: 10
             PlayerHandSO hand = TestHelpers.CreateHand(1, card3, card7, card10);
-            CardSO fieldCard = null;
+            FieldState fieldState = FieldState.Empty();
 
             // Act
-            CardSO result = strategy.DecideAction(hand, fieldCard);
+            CardSO result = strategy.DecideAction(hand, fieldState);
 
             // Assert
             Assert.AreEqual(card3, result, "AI should select weakest card (3) on empty field");
@@ -68,10 +69,10 @@ namespace Daifugo.Tests.AI
             CardSO ace = TestHelpers.CreateCardByRank(1);     // Strength: 14
             CardSO two = TestHelpers.CreateCardByRank(2);     // Strength: 15 (strongest)
             PlayerHandSO hand = TestHelpers.CreateHand(1, card3, ace, two);
-            CardSO fieldCard = null;
+            FieldState fieldState = FieldState.Empty();
 
             // Act
-            CardSO result = strategy.DecideAction(hand, fieldCard);
+            CardSO result = strategy.DecideAction(hand, fieldState);
 
             // Assert
             Assert.AreEqual(card3, result, "AI should select 3 (weakest) even with Ace and 2");
@@ -92,10 +93,10 @@ namespace Daifugo.Tests.AI
             CardSO card7 = TestHelpers.CreateCardByRank(7);   // Strength: 7 (playable, weakest)
             CardSO card10 = TestHelpers.CreateCardByRank(10); // Strength: 10 (playable)
             PlayerHandSO hand = TestHelpers.CreateHand(1, card3, card7, card10);
-            CardSO fieldCard = TestHelpers.CreateCardByRank(5); // Field strength: 5
+            FieldState fieldState = FieldState.AddCard(FieldState.Empty(), TestHelpers.CreateCardByRank(5)); // Field strength: 5
 
             // Act
-            CardSO result = strategy.DecideAction(hand, fieldCard);
+            CardSO result = strategy.DecideAction(hand, fieldState);
 
             // Assert
             Assert.AreEqual(card7, result, "AI should select weakest playable card (7)");
@@ -111,10 +112,10 @@ namespace Daifugo.Tests.AI
             CardSO card3 = TestHelpers.CreateCardByRank(3);   // Strength: 3
             CardSO card5 = TestHelpers.CreateCardByRank(5);   // Strength: 5
             PlayerHandSO hand = TestHelpers.CreateHand(1, card3, card5);
-            CardSO fieldCard = TestHelpers.CreateCardByRank(13); // Field strength: 13 (King)
+            FieldState fieldState = FieldState.AddCard(FieldState.Empty(), TestHelpers.CreateCardByRank(13)); // Field strength: 13 (King)
 
             // Act
-            CardSO result = strategy.DecideAction(hand, fieldCard);
+            CardSO result = strategy.DecideAction(hand, fieldState);
 
             // Assert
             Assert.IsNull(result, "AI should return null when no cards are playable");
@@ -129,10 +130,10 @@ namespace Daifugo.Tests.AI
             // Arrange
             CardSO ace = TestHelpers.CreateCardByRank(1);    // Strength: 14
             PlayerHandSO hand = TestHelpers.CreateHand(1, ace);
-            CardSO fieldCard = TestHelpers.CreateCardByRank(13); // King, strength: 13
+            FieldState fieldState = FieldState.AddCard(FieldState.Empty(), TestHelpers.CreateCardByRank(13)); // King, strength: 13
 
             // Act
-            CardSO result = strategy.DecideAction(hand, fieldCard);
+            CardSO result = strategy.DecideAction(hand, fieldState);
 
             // Assert
             Assert.AreEqual(ace, result, "AI should play Ace over King");
@@ -147,10 +148,10 @@ namespace Daifugo.Tests.AI
             // Arrange
             CardSO two = TestHelpers.CreateCardByRank(2);    // Strength: 15 (strongest)
             PlayerHandSO hand = TestHelpers.CreateHand(1, two);
-            CardSO fieldCard = TestHelpers.CreateCardByRank(1); // Ace, strength: 14
+            FieldState fieldState = FieldState.AddCard(FieldState.Empty(), TestHelpers.CreateCardByRank(1)); // Ace, strength: 14
 
             // Act
-            CardSO result = strategy.DecideAction(hand, fieldCard);
+            CardSO result = strategy.DecideAction(hand, fieldState);
 
             // Assert
             Assert.AreEqual(two, result, "AI should play 2 over Ace");
@@ -172,10 +173,10 @@ namespace Daifugo.Tests.AI
             CardSO ace = TestHelpers.CreateCardByRank(1);     // Strength: 14
             CardSO two = TestHelpers.CreateCardByRank(2);     // Strength: 15 (strongest)
             PlayerHandSO hand = TestHelpers.CreateHand(1, card7, card10, ace, two);
-            CardSO fieldCard = TestHelpers.CreateCardByRank(5); // Field strength: 5
+            FieldState fieldState = FieldState.AddCard(FieldState.Empty(), TestHelpers.CreateCardByRank(5)); // Field strength: 5
 
             // Act
-            CardSO result = strategy.DecideAction(hand, fieldCard);
+            CardSO result = strategy.DecideAction(hand, fieldState);
 
             // Assert
             Assert.AreEqual(card7, result, "AI should play weakest card (7) to conserve strong cards");
@@ -195,10 +196,10 @@ namespace Daifugo.Tests.AI
         {
             // Arrange
             PlayerHandSO hand = null;
-            CardSO fieldCard = null;
+            FieldState fieldState = FieldState.Empty();
 
             // Act
-            CardSO result = strategy.DecideAction(hand, fieldCard);
+            CardSO result = strategy.DecideAction(hand, fieldState);
 
             // Assert
             Assert.IsNull(result, "Should handle null hand gracefully");
@@ -214,13 +215,13 @@ namespace Daifugo.Tests.AI
             CardSO card5 = TestHelpers.CreateCardByRank(5);
             CardSO card9 = TestHelpers.CreateCardByRank(9);
             PlayerHandSO hand = TestHelpers.CreateHand(1, card5, card9);
-            CardSO fieldCard = null;
+            FieldState fieldState = FieldState.Empty();
 
             // Act
-            CardSO result = strategy.DecideAction(hand, fieldCard);
+            CardSO result = strategy.DecideAction(hand, fieldState);
 
             // Assert
-            Assert.AreEqual(card5, result, "Should select weakest card with null field card");
+            Assert.AreEqual(card5, result, "Should select weakest card with empty field");
         }
 
         #endregion
@@ -236,10 +237,10 @@ namespace Daifugo.Tests.AI
             // Arrange
             CardSO card7 = TestHelpers.CreateCardByRank(7);
             PlayerHandSO hand = TestHelpers.CreateHand(1, card7);
-            CardSO fieldCard = TestHelpers.CreateCardByRank(5);
+            FieldState fieldState = FieldState.AddCard(FieldState.Empty(), TestHelpers.CreateCardByRank(5));
 
             // Act
-            CardSO result = strategy.DecideAction(hand, fieldCard);
+            CardSO result = strategy.DecideAction(hand, fieldState);
 
             // Assert
             Assert.AreEqual(card7, result, "AI should play the only playable card");
@@ -254,10 +255,10 @@ namespace Daifugo.Tests.AI
             // Arrange
             CardSO card3 = TestHelpers.CreateCardByRank(3);
             PlayerHandSO hand = TestHelpers.CreateHand(1, card3);
-            CardSO fieldCard = TestHelpers.CreateCardByRank(10);
+            FieldState fieldState = FieldState.AddCard(FieldState.Empty(), TestHelpers.CreateCardByRank(10));
 
             // Act
-            CardSO result = strategy.DecideAction(hand, fieldCard);
+            CardSO result = strategy.DecideAction(hand, fieldState);
 
             // Assert
             Assert.IsNull(result, "AI should return null when only card is not playable");

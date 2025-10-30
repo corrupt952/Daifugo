@@ -21,10 +21,9 @@ namespace Daifugo.Events
         public int PlayerID;
 
         /// <summary>
-        /// The current card on the field after this play
-        /// (Usually the same as Card)
+        /// The field state after this play (includes card history for binding detection)
         /// </summary>
-        public Data.CardSO FieldCard;
+        public Core.FieldState FieldState;
 
         /// <summary>
         /// Callback invoked by UI after card animation completes

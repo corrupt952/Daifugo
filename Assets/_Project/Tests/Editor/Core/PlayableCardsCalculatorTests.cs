@@ -70,7 +70,7 @@ namespace Daifugo.Tests.Core
                 TestHelpers.CreateCardByRank(5),  // Strength: 5
                 TestHelpers.CreateCardByRank(10)); // Strength: 10
             var fieldCard = TestHelpers.CreateCardByRank(6); // Strength: 6
-            var fieldState = FieldState.FromCard(fieldCard);
+            var fieldState = FieldState.AddCard(FieldState.Empty(), fieldCard);
 
             // Act
             var result = calculator.GetPlayableCards(hand, fieldState, defaultRules);
@@ -92,7 +92,7 @@ namespace Daifugo.Tests.Core
                 TestHelpers.CreateCardByRank(5),
                 TestHelpers.CreateCardByRank(7));
             var fieldCard = TestHelpers.CreateCardByRank(10); // Stronger than all
-            var fieldState = FieldState.FromCard(fieldCard);
+            var fieldState = FieldState.AddCard(FieldState.Empty(), fieldCard);
 
             // Act
             var result = calculator.GetPlayableCards(hand, fieldState, defaultRules);
@@ -148,7 +148,7 @@ namespace Daifugo.Tests.Core
             // Arrange
             var weakCard = TestHelpers.CreateCardByRank(3);  // Strength: 3
             var strongCard = TestHelpers.CreateCardByRank(7); // Strength: 7
-            var fieldState = FieldState.FromCard(weakCard);
+            var fieldState = FieldState.AddCard(FieldState.Empty(), weakCard);
 
             // Act
             bool result = calculator.CanPlayCard(strongCard, fieldState, defaultRules);
@@ -166,7 +166,7 @@ namespace Daifugo.Tests.Core
             // Arrange
             var weakCard = TestHelpers.CreateCardByRank(3);  // Strength: 3
             var strongCard = TestHelpers.CreateCardByRank(10); // Strength: 10
-            var fieldState = FieldState.FromCard(strongCard);
+            var fieldState = FieldState.AddCard(FieldState.Empty(), strongCard);
 
             // Act
             bool result = calculator.CanPlayCard(weakCard, fieldState, defaultRules);
@@ -184,7 +184,7 @@ namespace Daifugo.Tests.Core
             // Arrange
             var card1 = TestHelpers.CreateCardByRank(7);
             var card2 = TestHelpers.CreateCardByRank(7);
-            var fieldState = FieldState.FromCard(card1);
+            var fieldState = FieldState.AddCard(FieldState.Empty(), card1);
 
             // Act
             bool result = calculator.CanPlayCard(card2, fieldState, defaultRules);
@@ -281,6 +281,125 @@ namespace Daifugo.Tests.Core
 
             // Assert
             Assert.IsFalse(result, "Null hand should return false");
+        }
+
+        #endregion
+
+        #region Binding Rule Tests
+
+        /// <summary>
+        /// Test: Cannot play different suit during binding
+        /// </summary>
+        [Test]
+        public void CanPlayCard_BindingActive_DifferentSuit_ReturnsFalse()
+        {
+            // Arrange
+            CardSO spade5 = TestHelpers.CreateCard(CardSO.Suit.Spade, 5);
+            CardSO spade7 = TestHelpers.CreateCard(CardSO.Suit.Spade, 7);
+            CardSO heart10 = TestHelpers.CreateCard(CardSO.Suit.Heart, 10);
+            GameRulesSO rules = TestHelpers.CreateGameRules(enableBind: true);
+
+            FieldState state = FieldState.AddCard(FieldState.Empty(), spade5);
+            state = FieldState.AddCard(state, spade7);  // 縛り発動
+
+            // Act
+            bool canPlay = calculator.CanPlayCard(heart10, state, rules);
+
+            // Assert
+            Assert.IsFalse(canPlay, "縛り中は異なるスート出せない");
+        }
+
+        /// <summary>
+        /// Test: Can play same suit stronger card during binding
+        /// </summary>
+        [Test]
+        public void CanPlayCard_BindingActive_SameSuit_StrongerCard_ReturnsTrue()
+        {
+            // Arrange
+            CardSO spade5 = TestHelpers.CreateCard(CardSO.Suit.Spade, 5);
+            CardSO spade7 = TestHelpers.CreateCard(CardSO.Suit.Spade, 7);
+            CardSO spade9 = TestHelpers.CreateCard(CardSO.Suit.Spade, 9);
+            GameRulesSO rules = TestHelpers.CreateGameRules(enableBind: true);
+
+            FieldState state = FieldState.AddCard(FieldState.Empty(), spade5);
+            state = FieldState.AddCard(state, spade7);  // 縛り発動
+
+            // Act
+            bool canPlay = calculator.CanPlayCard(spade9, state, rules);
+
+            // Assert
+            Assert.IsTrue(canPlay, "縛り中でも同じスートで強ければ出せる");
+        }
+
+        /// <summary>
+        /// Test: Cannot play same suit weaker card during binding
+        /// </summary>
+        [Test]
+        public void CanPlayCard_BindingActive_SameSuit_WeakerCard_ReturnsFalse()
+        {
+            // Arrange
+            CardSO spade7 = TestHelpers.CreateCard(CardSO.Suit.Spade, 7);
+            CardSO spade9 = TestHelpers.CreateCard(CardSO.Suit.Spade, 9);
+            CardSO spade5 = TestHelpers.CreateCard(CardSO.Suit.Spade, 5);
+            GameRulesSO rules = TestHelpers.CreateGameRules(enableBind: true);
+
+            FieldState state = FieldState.AddCard(FieldState.Empty(), spade7);
+            state = FieldState.AddCard(state, spade9);  // 縛り発動
+
+            // Act
+            bool canPlay = calculator.CanPlayCard(spade5, state, rules);
+
+            // Assert
+            Assert.IsFalse(canPlay, "縛り中でも弱いカードは出せない");
+        }
+
+        /// <summary>
+        /// Test: Binding does not affect when rule is disabled
+        /// </summary>
+        [Test]
+        public void CanPlayCard_BindingDisabled_DifferentSuit_ReturnsTrue()
+        {
+            // Arrange
+            CardSO spade5 = TestHelpers.CreateCard(CardSO.Suit.Spade, 5);
+            CardSO spade7 = TestHelpers.CreateCard(CardSO.Suit.Spade, 7);
+            CardSO heart10 = TestHelpers.CreateCard(CardSO.Suit.Heart, 10);
+            GameRulesSO rules = TestHelpers.CreateGameRules(enableBind: false);
+
+            FieldState state = FieldState.AddCard(FieldState.Empty(), spade5);
+            state = FieldState.AddCard(state, spade7);
+
+            // Act
+            bool canPlay = calculator.CanPlayCard(heart10, state, rules);
+
+            // Assert
+            Assert.IsTrue(canPlay, "縛りルール無効時は異なるスートも出せる");
+        }
+
+        /// <summary>
+        /// Test: GetPlayableCards filters correctly during binding
+        /// </summary>
+        [Test]
+        public void GetPlayableCards_BindingActive_ReturnsOnlySameSuit()
+        {
+            // Arrange
+            CardSO spade5 = TestHelpers.CreateCard(CardSO.Suit.Spade, 5);
+            CardSO spade7 = TestHelpers.CreateCard(CardSO.Suit.Spade, 7);
+            CardSO spade9 = TestHelpers.CreateCard(CardSO.Suit.Spade, 9);
+            CardSO heart10 = TestHelpers.CreateCard(CardSO.Suit.Heart, 10);
+            CardSO diamond11 = TestHelpers.CreateCard(CardSO.Suit.Diamond, 11);
+            GameRulesSO rules = TestHelpers.CreateGameRules(enableBind: true);
+
+            var hand = TestHelpers.CreateHand(0, spade9, heart10, diamond11);
+
+            FieldState state = FieldState.AddCard(FieldState.Empty(), spade5);
+            state = FieldState.AddCard(state, spade7);  // 縛り発動
+
+            // Act
+            var playableCards = calculator.GetPlayableCards(hand, state, rules);
+
+            // Assert
+            Assert.AreEqual(1, playableCards.Count, "縛り中はスペードのみ");
+            Assert.AreEqual(spade9, playableCards[0], "スペード9のみ出せる");
         }
 
         #endregion

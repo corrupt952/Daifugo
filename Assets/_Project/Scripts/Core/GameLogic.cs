@@ -52,12 +52,12 @@ namespace Daifugo.Core
         /// </summary>
         /// <param name="card">Card to play</param>
         /// <param name="hand">Player's hand</param>
-        /// <param name="currentFieldCard">Current card on field (null if empty)</param>
+        /// <param name="currentFieldState">Current field state (includes card history)</param>
         /// <returns>Result of the card play operation</returns>
         public CardPlayResult PlayCard(
             CardSO card,
             PlayerHandSO hand,
-            CardSO currentFieldCard)
+            FieldState currentFieldState)
         {
             // Validation 1: Check if card is in hand
             if (!calculator.IsCardInHand(card, hand))
@@ -65,18 +65,17 @@ namespace Daifugo.Core
                 return CardPlayResult.Fail("Card not in hand");
             }
 
-            // Validation 2: Check if card can be played on current field
-            var fieldState = currentFieldCard == null
-                ? FieldState.Empty()
-                : FieldState.FromCard(currentFieldCard);
-
-            if (!calculator.CanPlayCard(card, fieldState, gameRules))
+            // Validation 2: Check if card can be played on current field (including binding check)
+            if (!calculator.CanPlayCard(card, currentFieldState, gameRules))
             {
                 return CardPlayResult.Fail("Cannot play this card on current field");
             }
 
             // Execute: Remove card from hand
             hand.RemoveCard(card);
+
+            // Update field state with new card
+            FieldState newFieldState = FieldState.AddCard(currentFieldState, card);
 
             // Check special rules
             bool shouldResetField = CheckSpecialRules(card);
@@ -85,7 +84,7 @@ namespace Daifugo.Core
             bool isWin = hand.IsEmpty;
 
             return CardPlayResult.Success(
-                newFieldCard: card,
+                newFieldState: newFieldState,
                 isWin: isWin,
                 shouldResetField: shouldResetField
             );
@@ -131,9 +130,9 @@ namespace Daifugo.Core
         public bool ShouldResetField { get; private set; }
 
         /// <summary>
-        /// The new field card after the play
+        /// The new field state after the play (includes card history for binding detection)
         /// </summary>
-        public CardSO NewFieldCard { get; private set; }
+        public FieldState NewFieldState { get; private set; }
 
         /// <summary>
         /// Error message if play failed
@@ -157,14 +156,14 @@ namespace Daifugo.Core
         /// <summary>
         /// Creates a successful result
         /// </summary>
-        public static CardPlayResult Success(CardSO newFieldCard, bool isWin, bool shouldResetField)
+        public static CardPlayResult Success(FieldState newFieldState, bool isWin, bool shouldResetField)
         {
             return new CardPlayResult
             {
                 IsSuccess = true,
                 IsWin = isWin,
                 ShouldResetField = shouldResetField,
-                NewFieldCard = newFieldCard,
+                NewFieldState = newFieldState,
                 ErrorMessage = null
             };
         }
@@ -179,7 +178,7 @@ namespace Daifugo.Core
                 IsSuccess = false,
                 IsWin = false,
                 ShouldResetField = false,
-                NewFieldCard = null,
+                NewFieldState = FieldState.Empty(),
                 ErrorMessage = errorMessage
             };
         }

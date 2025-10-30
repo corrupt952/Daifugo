@@ -482,6 +482,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 4761eef54930a44669a6bec6b17068a2, type: 2}
   - {fileID: 11400000, guid: 1d43dce9d354b420daacd3aae92690b0, type: 2}
   - {fileID: 11400000, guid: f9fdc8a639cf54f049c8061c11611393, type: 2}
+  gameRules: {fileID: 11400000, guid: e567e3377f20d445e969ada29f3e7dff, type: 2}
   cardBackSprite: {fileID: 21300000, guid: d97283cafb5d944dfbf149bdfab9b518, type: 3}
   onGameStarted: {fileID: 11400000, guid: 1e559a098bd1048a1921013bec63c699, type: 2}
   onTurnChanged: {fileID: 11400000, guid: 3052b07f623664ad6a2f90f0c08f9901, type: 2}
@@ -563,6 +564,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 4761eef54930a44669a6bec6b17068a2, type: 2}
   - {fileID: 11400000, guid: 1d43dce9d354b420daacd3aae92690b0, type: 2}
   - {fileID: 11400000, guid: f9fdc8a639cf54f049c8061c11611393, type: 2}
+  gameRules: {fileID: 11400000, guid: e567e3377f20d445e969ada29f3e7dff, type: 2}
   onGameStarted: {fileID: 11400000, guid: 1e559a098bd1048a1921013bec63c699, type: 2}
   onTurnChanged: {fileID: 11400000, guid: 3052b07f623664ad6a2f90f0c08f9901, type: 2}
   onCardPlayed: {fileID: 11400000, guid: c64d5e50975ed488b890e2270acf9439, type: 2}
@@ -635,6 +637,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 4761eef54930a44669a6bec6b17068a2, type: 2}
   - {fileID: 11400000, guid: 1d43dce9d354b420daacd3aae92690b0, type: 2}
   - {fileID: 11400000, guid: f9fdc8a639cf54f049c8061c11611393, type: 2}
+  gameRules: {fileID: 11400000, guid: e567e3377f20d445e969ada29f3e7dff, type: 2}
   onPlayCardRequested: {fileID: 11400000, guid: 3ce52627793344060880d4c51b866543, type: 2}
   onPassButtonClicked: {fileID: 11400000, guid: 6b033279cf1214bd594eb0564dc2b4ae, type: 2}
   onGameStarted: {fileID: 11400000, guid: 1e559a098bd1048a1921013bec63c699, type: 2}

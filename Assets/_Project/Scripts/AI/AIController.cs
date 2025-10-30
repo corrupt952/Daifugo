@@ -1,4 +1,5 @@
 using System.Collections;
+using Daifugo.Core;
 using Daifugo.Data;
 using Daifugo.Events;
 using Tang3cko.EventChannels;
@@ -47,7 +48,7 @@ namespace Daifugo.AI
         [SerializeField] private VoidEventChannelSO onPassButtonClicked;
 
         // Runtime state (tracks field state from events)
-        private CardSO currentFieldCard;
+        private FieldState currentFieldState;
         private bool isGameActive;
 
         // Services (pure C# classes - testable)
@@ -85,7 +86,7 @@ namespace Daifugo.AI
         private void HandleGameStarted()
         {
             isGameActive = true;
-            currentFieldCard = null;
+            currentFieldState = FieldState.Empty();
         }
 
         /// <summary>
@@ -107,8 +108,8 @@ namespace Daifugo.AI
         /// <param name="eventData">Card play event data</param>
         private void HandleCardPlayed(CardPlayedEventData eventData)
         {
-            // Track the current field card
-            currentFieldCard = eventData.FieldCard;
+            // Track the current field state
+            currentFieldState = eventData.FieldState;
         }
 
         /// <summary>
@@ -116,7 +117,7 @@ namespace Daifugo.AI
         /// </summary>
         private void HandleFieldReset()
         {
-            currentFieldCard = null;
+            currentFieldState = FieldState.Empty();
         }
 
         /// <summary>
@@ -147,7 +148,7 @@ namespace Daifugo.AI
             PlayerHandSO aiHand = playerHands[aiPlayerID];
 
             // Use AI strategy to decide action
-            CardSO cardToPlay = aiStrategy.DecideAction(aiHand, currentFieldCard);
+            CardSO cardToPlay = aiStrategy.DecideAction(aiHand, currentFieldState);
 
             // Raise command event based on decision
             if (cardToPlay != null)

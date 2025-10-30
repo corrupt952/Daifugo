@@ -79,6 +79,7 @@ namespace Daifugo.UI
 
         // Field cards
         private CardUI currentFieldCardUI;
+        private FieldState currentFieldState;
 
         // Animation handles for cancellation
         private MotionHandle currentCardAnimationHandle;
@@ -207,6 +208,7 @@ namespace Daifugo.UI
         {
             // Update runtime state
             isGameActive = true;
+            currentFieldState = FieldState.Empty();
 
             // Clear field
             fieldCardsContainer?.Clear();
@@ -372,12 +374,15 @@ namespace Daifugo.UI
         /// </summary>
         private void HandleCardPlayed(CardPlayedEventData eventData)
         {
+            // Update field state
+            currentFieldState = eventData.FieldState;
+
             // Get the source card position for animation (before refreshing hand)
             Rect? sourceCardRect = null;
             if (eventData.PlayerID == 0 && playerHandUI != null)
             {
                 // Try to find the card UI element and get its position before refreshing hand
-                CardUI cardUI = playerHandUI.GetCardUI(eventData.FieldCard);
+                CardUI cardUI = playerHandUI.GetCardUI(eventData.Card);
                 if (cardUI?.Element != null && cardUI.Element.panel != null)
                 {
                     sourceCardRect = cardUI.Element.worldBound;
@@ -396,19 +401,19 @@ namespace Daifugo.UI
                 // Human player: animate from hand position if available
                 if (sourceCardRect.HasValue)
                 {
-                    AnimateCardToField(eventData.FieldCard, sourceCardRect.Value, eventData.OnAnimationComplete);
+                    AnimateCardToField(eventData.FieldState.CurrentCard, sourceCardRect.Value, eventData.OnAnimationComplete);
                 }
                 else
                 {
                     // Fallback: display immediately and invoke callback
-                    DisplayCardOnField(eventData.FieldCard);
+                    DisplayCardOnField(eventData.FieldState.CurrentCard);
                     eventData.OnAnimationComplete?.Invoke();
                 }
             }
             else
             {
                 // CPU player: animate with flip from opponent hand
-                AnimateCPUCardToField(eventData.FieldCard, eventData.PlayerID, eventData.OnAnimationComplete);
+                AnimateCPUCardToField(eventData.FieldState.CurrentCard, eventData.PlayerID, eventData.OnAnimationComplete);
             }
 
             // Update opponent hands display
@@ -638,6 +643,9 @@ namespace Daifugo.UI
         /// </summary>
         private void HandleFieldReset()
         {
+            // Update field state
+            currentFieldState = FieldState.Empty();
+
             if (fieldCardsContainer == null) return;
 
             // Cancel any ongoing card animation
@@ -671,14 +679,8 @@ namespace Daifugo.UI
                 return;
             }
 
-            // Get current field card (null if field is empty)
-            CardSO fieldCard = currentFieldCardUI?.CardData;
-
-            // Use calculator to determine playable cards
-            var fieldState = fieldCard == null
-                ? FieldState.Empty()
-                : FieldState.FromCard(fieldCard);
-            var playableCards = calculator.GetPlayableCards(playerHands[0], fieldState, gameRules);
+            // Use calculator to determine playable cards (includes binding check)
+            var playableCards = calculator.GetPlayableCards(playerHands[0], currentFieldState, gameRules);
 
             // Highlight playable cards in UI
             playerHandUI.HighlightPlayableCards(playableCards);

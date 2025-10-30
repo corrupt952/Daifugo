@@ -46,7 +46,7 @@ namespace Daifugo.Core
         [SerializeField] private TurnManager turnManager;
 
         // Runtime state (no Variables - see C-008)
-        private CardSO currentFieldCard;
+        private FieldState currentFieldState;
         private bool isGameActive;
 
         // Services (pure C# classes - testable)
@@ -85,7 +85,7 @@ namespace Daifugo.Core
         public void StartGame()
         {
             // 1. Reset game state
-            currentFieldCard = null;
+            currentFieldState = FieldState.Empty();
             isGameActive = true;
 
             // 2. Clear all hands
@@ -162,7 +162,7 @@ namespace Daifugo.Core
             PlayerHandSO hand = playerHands[currentPlayer];
 
             // Execute card play logic (testable)
-            CardPlayResult result = gameLogic.PlayCard(card, hand, currentFieldCard);
+            CardPlayResult result = gameLogic.PlayCard(card, hand, currentFieldState);
 
             // Handle failure
             if (!result.IsSuccess)
@@ -171,8 +171,8 @@ namespace Daifugo.Core
                 return;
             }
 
-            // Update field card
-            currentFieldCard = result.NewFieldCard;
+            // Update field state
+            currentFieldState = result.NewFieldState;
 
             Debug.Log($"[GameManager] Player {currentPlayer} played {card.CardSuit} {card.Rank}");
 
@@ -186,7 +186,7 @@ namespace Daifugo.Core
                 if (result.ShouldResetField)
                 {
                     Debug.Log("[GameManager] 8-cut activated! Field will reset.");
-                    currentFieldCard = null;
+                    currentFieldState = FieldState.Empty();
                     onFieldReset.RaiseEvent();
                 }
 
@@ -210,7 +210,7 @@ namespace Daifugo.Core
             {
                 Card = card,
                 PlayerID = currentPlayer,
-                FieldCard = currentFieldCard,
+                FieldState = currentFieldState,
                 OnAnimationComplete = onAnimationComplete
             };
             onCardPlayed.RaiseEvent(playedData);
@@ -237,11 +237,11 @@ namespace Daifugo.Core
 
         /// <summary>
         /// Handles field reset event from TurnManager (Notification Event)
-        /// Clears the current field card so any card can be played
+        /// Clears the field state so any card can be played
         /// </summary>
         private void HandleFieldReset()
         {
-            currentFieldCard = null;
+            currentFieldState = FieldState.Empty();
             Debug.Log("[GameManager] Field reset - any card can now be played.");
         }
 

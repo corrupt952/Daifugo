@@ -28,9 +28,9 @@ namespace Daifugo.AI
         /// Decides which card to play or whether to pass
         /// </summary>
         /// <param name="hand">AI player's hand</param>
-        /// <param name="fieldCard">Current card on the field (null if empty)</param>
+        /// <param name="fieldState">Current field state (includes card history)</param>
         /// <returns>Card to play, or null to pass</returns>
-        public CardSO DecideAction(PlayerHandSO hand, CardSO fieldCard)
+        public CardSO DecideAction(PlayerHandSO hand, FieldState fieldState)
         {
             // Validate inputs
             if (hand == null)
@@ -38,10 +38,7 @@ namespace Daifugo.AI
                 return null;
             }
 
-            // 1. Get playable cards based on field state
-            var fieldState = fieldCard == null
-                ? FieldState.Empty()
-                : FieldState.FromCard(fieldCard);
+            // 1. Get playable cards based on field state (includes binding check)
             var playableCards = calculator.GetPlayableCards(hand, fieldState, gameRules);
 
             // 2. If no playable cards, return null (pass)
