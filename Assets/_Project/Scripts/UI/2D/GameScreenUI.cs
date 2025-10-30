@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Daifugo.Data;
 using Daifugo.Events;
 using LitMotion;
@@ -655,7 +656,12 @@ namespace Daifugo.UI
             if (playerHandUI == null || playerHands == null || playerHands.Length == 0) return;
 
             // Only highlight during player's turn
-            if (currentPlayerID != 0) return;
+            if (currentPlayerID != 0)
+            {
+                // Clear highlights when not player's turn
+                playerHandUI.HighlightPlayableCards(new List<CardSO>());
+                return;
+            }
 
             // Get current field card strength
             int fieldStrength = 0;
