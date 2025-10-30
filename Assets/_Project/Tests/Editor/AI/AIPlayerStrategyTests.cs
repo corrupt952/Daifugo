@@ -14,6 +14,7 @@ namespace Daifugo.Tests.AI
     public class AIPlayerStrategyTests
     {
         private AIPlayerStrategy strategy;
+        private GameRulesSO gameRules;
 
         /// <summary>
         /// Sets up test fixtures before each test
@@ -21,7 +22,8 @@ namespace Daifugo.Tests.AI
         [SetUp]
         public void Setup()
         {
-            strategy = new AIPlayerStrategy();
+            gameRules = TestHelpers.CreateGameRules(enable8Cut: true);
+            strategy = new AIPlayerStrategy(gameRules);
         }
 
         /// <summary>

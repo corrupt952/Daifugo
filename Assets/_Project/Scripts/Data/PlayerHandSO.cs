@@ -119,25 +119,6 @@ namespace Daifugo.Data
         }
 
         /// <summary>
-        /// Gets all playable cards given current field strength
-        /// </summary>
-        /// <param name="fieldStrength">Strength of the card on the field (0 if empty)</param>
-        /// <returns>List of playable cards</returns>
-        public List<CardSO> GetPlayableCards(int fieldStrength)
-        {
-            // If field is empty, all cards are playable
-            if (fieldStrength == 0)
-            {
-                return new List<CardSO>(cardsInHand);
-            }
-
-            // Otherwise, only cards stronger than field are playable
-            return cardsInHand
-                .Where(card => card.GetStrength() > fieldStrength)
-                .ToList();
-        }
-
-        /// <summary>
         /// Clears all cards from the hand
         /// </summary>
         public void Clear()

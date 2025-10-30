@@ -2,7 +2,6 @@ using NUnit.Framework;
 using Daifugo.Core;
 using Daifugo.Data;
 using Daifugo.Tests.Helpers;
-using Daifugo.Tests.Mocks;
 
 namespace Daifugo.Tests.Core
 {
@@ -13,7 +12,7 @@ namespace Daifugo.Tests.Core
     public class GameLogicTests
     {
         private GameLogic gameLogic;
-        private MockRuleValidator mockValidator;
+        private GameRulesSO gameRules;
 
         /// <summary>
         /// Sets up test fixtures before each test
@@ -22,9 +21,8 @@ namespace Daifugo.Tests.Core
         [SetUp]
         public void Setup()
         {
-            gameLogic = new GameLogic();
-            mockValidator = new MockRuleValidator();
-            mockValidator.SetAllValid(true); // Default: all validations pass
+            gameRules = TestHelpers.CreateGameRules(enable8Cut: true);
+            gameLogic = new GameLogic(gameRules);
         }
 
         #region Happy Path Tests
@@ -42,7 +40,7 @@ namespace Daifugo.Tests.Core
             CardSO emptyField = null;
 
             // Act
-            CardPlayResult result = gameLogic.PlayCard(card, hand, emptyField, mockValidator);
+            CardPlayResult result = gameLogic.PlayCard(card, hand, emptyField);
 
             // Assert
             Assert.IsTrue(result.IsSuccess, "Card play should succeed");
@@ -65,7 +63,7 @@ namespace Daifugo.Tests.Core
             PlayerHandSO hand = TestHelpers.CreateHand(0, card, card2);
 
             // Act
-            CardPlayResult result = gameLogic.PlayCard(card, hand, fieldCard, mockValidator);
+            CardPlayResult result = gameLogic.PlayCard(card, hand, fieldCard);
 
             // Assert
             Assert.IsTrue(result.IsSuccess, "Playing stronger card should succeed");
@@ -84,7 +82,7 @@ namespace Daifugo.Tests.Core
             PlayerHandSO hand = TestHelpers.CreateHand(0, lastCard);
 
             // Act
-            CardPlayResult result = gameLogic.PlayCard(lastCard, hand, null, mockValidator);
+            CardPlayResult result = gameLogic.PlayCard(lastCard, hand, null);
 
             // Assert
             Assert.IsTrue(result.IsSuccess, "Last card play should succeed");
@@ -105,7 +103,7 @@ namespace Daifugo.Tests.Core
             PlayerHandSO hand = TestHelpers.CreateHand(0, card1, card2);
 
             // Act
-            CardPlayResult result = gameLogic.PlayCard(card1, hand, null, mockValidator);
+            CardPlayResult result = gameLogic.PlayCard(card1, hand, null);
 
             // Assert
             Assert.IsTrue(result.IsSuccess, "Card play should succeed");
@@ -130,7 +128,7 @@ namespace Daifugo.Tests.Core
             PlayerHandSO hand = TestHelpers.CreateHand(0, card8, card2);
 
             // Act
-            CardPlayResult result = gameLogic.PlayCard(card8, hand, null, mockValidator);
+            CardPlayResult result = gameLogic.PlayCard(card8, hand, null);
 
             // Assert
             Assert.IsTrue(result.IsSuccess, "8 card play should succeed");
@@ -152,7 +150,7 @@ namespace Daifugo.Tests.Core
             PlayerHandSO hand = TestHelpers.CreateHand(0, card8, card2);
 
             // Act
-            CardPlayResult result = gameLogic.PlayCard(card8, hand, fieldCard, mockValidator);
+            CardPlayResult result = gameLogic.PlayCard(card8, hand, fieldCard);
 
             // Assert
             Assert.IsTrue(result.IsSuccess, "8 play should succeed");
@@ -171,7 +169,7 @@ namespace Daifugo.Tests.Core
             PlayerHandSO hand = TestHelpers.CreateHand(0, card8);
 
             // Act
-            CardPlayResult result = gameLogic.PlayCard(card8, hand, null, mockValidator);
+            CardPlayResult result = gameLogic.PlayCard(card8, hand, null);
 
             // Assert
             Assert.IsTrue(result.IsSuccess, "Last 8 play should succeed");
@@ -196,7 +194,7 @@ namespace Daifugo.Tests.Core
                 PlayerHandSO hand = TestHelpers.CreateHand(0, card, card2);
 
                 // Act
-                CardPlayResult result = gameLogic.PlayCard(card, hand, null, mockValidator);
+                CardPlayResult result = gameLogic.PlayCard(card, hand, null);
 
                 // Assert
                 Assert.IsTrue(result.IsSuccess, $"Card {rank} play should succeed");
@@ -218,13 +216,13 @@ namespace Daifugo.Tests.Core
             PlayerHandSO hand = TestHelpers.CreateHand(0, card8, weakCard, card3);
 
             // Act - Play 8 first
-            CardPlayResult result1 = gameLogic.PlayCard(card8, hand, null, mockValidator);
+            CardPlayResult result1 = gameLogic.PlayCard(card8, hand, null);
 
             // Assert - 8-cut should be triggered
             Assert.IsTrue(result1.ShouldResetField, "8 should trigger field reset");
 
             // Act - Play weak card on empty field (simulating field reset)
-            CardPlayResult result2 = gameLogic.PlayCard(weakCard, hand, null, mockValidator);
+            CardPlayResult result2 = gameLogic.PlayCard(weakCard, hand, null);
 
             // Assert - Any card should be playable on empty field
             Assert.IsTrue(result2.IsSuccess, "Any card should be playable after 8-cut (empty field)");
@@ -242,12 +240,12 @@ namespace Daifugo.Tests.Core
         public void PlayCard_CardNotInHand_ReturnsFail()
         {
             // Arrange
-            CardSO card = TestHelpers.CreateCardByRank(5);
-            PlayerHandSO hand = TestHelpers.CreateHand(0); // Empty hand
-            mockValidator.SetCardInHandResult(false);
+            CardSO cardNotInHand = TestHelpers.CreateCardByRank(5);
+            CardSO cardInHand = TestHelpers.CreateCardByRank(7);
+            PlayerHandSO hand = TestHelpers.CreateHand(0, cardInHand); // Hand contains only card 7
 
             // Act
-            CardPlayResult result = gameLogic.PlayCard(card, hand, null, mockValidator);
+            CardPlayResult result = gameLogic.PlayCard(cardNotInHand, hand, null);
 
             // Assert
             Assert.IsFalse(result.IsSuccess, "Card not in hand should fail");
@@ -265,10 +263,9 @@ namespace Daifugo.Tests.Core
             CardSO weakCard = TestHelpers.CreateCardByRank(3);
             CardSO strongField = TestHelpers.CreateCardByRank(10);
             PlayerHandSO hand = TestHelpers.CreateHand(0, weakCard);
-            mockValidator.SetCanPlayCardResult(false);
 
-            // Act
-            CardPlayResult result = gameLogic.PlayCard(weakCard, hand, strongField, mockValidator);
+            // Act - Try to play weak card (3) on strong field (10)
+            CardPlayResult result = gameLogic.PlayCard(weakCard, hand, strongField);
 
             // Assert
             Assert.IsFalse(result.IsSuccess, "Invalid card play should fail");
@@ -282,13 +279,13 @@ namespace Daifugo.Tests.Core
         public void PlayCard_ValidationFails_DoesNotModifyHand()
         {
             // Arrange
-            CardSO card = TestHelpers.CreateCardByRank(5);
-            PlayerHandSO hand = TestHelpers.CreateHand(0, card);
+            CardSO cardNotInHand = TestHelpers.CreateCardByRank(5);
+            CardSO cardInHand = TestHelpers.CreateCardByRank(7);
+            PlayerHandSO hand = TestHelpers.CreateHand(0, cardInHand);
             int initialCardCount = hand.CardCount;
-            mockValidator.SetCardInHandResult(false);
 
-            // Act
-            CardPlayResult result = gameLogic.PlayCard(card, hand, null, mockValidator);
+            // Act - Try to play card not in hand
+            CardPlayResult result = gameLogic.PlayCard(cardNotInHand, hand, null);
 
             // Assert
             Assert.IsFalse(result.IsSuccess, "Play should fail");
@@ -311,14 +308,14 @@ namespace Daifugo.Tests.Core
             PlayerHandSO hand = TestHelpers.CreateHand(0, card8_1, card8_2);
 
             // Act - Play first 8
-            CardPlayResult result1 = gameLogic.PlayCard(card8_1, hand, null, mockValidator);
+            CardPlayResult result1 = gameLogic.PlayCard(card8_1, hand, null);
 
             // Assert - First 8
             Assert.IsTrue(result1.IsSuccess, "First 8 play should succeed");
             Assert.IsTrue(result1.ShouldResetField, "First 8 should activate 8-cut");
 
             // Act - Play second 8 (assuming field was reset)
-            CardPlayResult result2 = gameLogic.PlayCard(card8_2, hand, null, mockValidator);
+            CardPlayResult result2 = gameLogic.PlayCard(card8_2, hand, null);
 
             // Assert - Second 8
             Assert.IsTrue(result2.IsSuccess, "Second 8 play should succeed");
@@ -338,7 +335,7 @@ namespace Daifugo.Tests.Core
             PlayerHandSO hand = TestHelpers.CreateHand(0, card8);
 
             // Act
-            CardPlayResult result = gameLogic.PlayCard(card8, hand, null, mockValidator);
+            CardPlayResult result = gameLogic.PlayCard(card8, hand, null);
 
             // Assert
             Assert.IsTrue(result.IsSuccess, "Single 8 play should succeed");
@@ -361,7 +358,7 @@ namespace Daifugo.Tests.Core
             PlayerHandSO hand = TestHelpers.CreateHand(0, card1, card2, card3);
 
             // Act
-            CardPlayResult result = gameLogic.PlayCard(card2, hand, null, mockValidator);
+            CardPlayResult result = gameLogic.PlayCard(card2, hand, null);
 
             // Assert
             Assert.IsTrue(result.IsSuccess, "Card play should succeed");
@@ -381,10 +378,9 @@ namespace Daifugo.Tests.Core
             CardSO nullCard = null;
             CardSO validCard = TestHelpers.CreateCardByRank(5);
             PlayerHandSO hand = TestHelpers.CreateHand(0, validCard);
-            mockValidator.SetCardInHandResult(false);
 
             // Act
-            CardPlayResult result = gameLogic.PlayCard(nullCard, hand, null, mockValidator);
+            CardPlayResult result = gameLogic.PlayCard(nullCard, hand, null);
 
             // Assert
             Assert.IsFalse(result.IsSuccess, "Null card should fail");
@@ -400,10 +396,9 @@ namespace Daifugo.Tests.Core
             // Arrange
             CardSO card = TestHelpers.CreateCardByRank(5);
             PlayerHandSO nullHand = null;
-            mockValidator.SetCardInHandResult(false);
 
             // Act
-            CardPlayResult result = gameLogic.PlayCard(card, nullHand, null, mockValidator);
+            CardPlayResult result = gameLogic.PlayCard(card, nullHand, null);
 
             // Assert
             Assert.IsFalse(result.IsSuccess, "Null hand should fail");
@@ -425,7 +420,7 @@ namespace Daifugo.Tests.Core
             PlayerHandSO hand = TestHelpers.CreateHand(0, card);
 
             // Act
-            CardPlayResult result = gameLogic.PlayCard(card, hand, null, mockValidator);
+            CardPlayResult result = gameLogic.PlayCard(card, hand, null);
 
             // Assert
             Assert.IsTrue(result.IsSuccess, "Result should indicate success");
@@ -441,12 +436,12 @@ namespace Daifugo.Tests.Core
         public void CardPlayResult_Failure_ContainsErrorMessage()
         {
             // Arrange
-            CardSO card = TestHelpers.CreateCardByRank(5);
-            PlayerHandSO hand = TestHelpers.CreateHand(0, card);
-            mockValidator.SetCardInHandResult(false);
+            CardSO cardNotInHand = TestHelpers.CreateCardByRank(5);
+            CardSO cardInHand = TestHelpers.CreateCardByRank(7);
+            PlayerHandSO hand = TestHelpers.CreateHand(0, cardInHand);
 
-            // Act
-            CardPlayResult result = gameLogic.PlayCard(card, hand, null, mockValidator);
+            // Act - Try to play card not in hand
+            CardPlayResult result = gameLogic.PlayCard(cardNotInHand, hand, null);
 
             // Assert
             Assert.IsFalse(result.IsSuccess, "Result should indicate failure");

@@ -18,6 +18,9 @@ namespace Daifugo.Core
         [Tooltip("Player hands (0 = Human, 1-3 = AI)")]
         [SerializeField] private PlayerHandSO[] playerHands; // 4 elements
 
+        [Tooltip("Game rules configuration")]
+        [SerializeField] private GameRulesSO gameRules;
+
         [Header("Events - Commands")]
         [Tooltip("Raised when UI/AI requests to play a card")]
         [SerializeField] private CardEventChannelSO onPlayCardRequested;
@@ -48,13 +51,11 @@ namespace Daifugo.Core
 
         // Services (pure C# classes - testable)
         private GameLogic gameLogic;
-        private RuleValidator ruleValidator;
 
         private void Awake()
         {
             // Initialize pure C# services
-            gameLogic = new GameLogic();
-            ruleValidator = new RuleValidator();
+            gameLogic = new GameLogic(gameRules);
         }
 
         private void OnEnable()
@@ -161,7 +162,7 @@ namespace Daifugo.Core
             PlayerHandSO hand = playerHands[currentPlayer];
 
             // Execute card play logic (testable)
-            CardPlayResult result = gameLogic.PlayCard(card, hand, currentFieldCard, ruleValidator);
+            CardPlayResult result = gameLogic.PlayCard(card, hand, currentFieldCard);
 
             // Handle failure
             if (!result.IsSuccess)

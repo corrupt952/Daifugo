@@ -359,6 +359,163 @@ Kenney Playing Cards Packのどのサイズを使用するか？
 
 ---
 
+## C-014: プレイ可能カード判定ロジックの統合（リファクタリング）
+
+### 背景
+Phase 1初期実装では、プレイ可能カード判定ロジックが複数箇所に分散していた：
+- `PlayerHandSO.GetPlayableCards()` - データ層がロジックを持つ（責任違反）
+- `RuleValidator` - ルール検証のみを担当
+- `PlayableCardService` - ターン判定とロジックが混在
+- `IRuleValidator` インターフェース - 実装が1つのみ（過度な抽象化）
+
+### 問題点
+1. **関心の分離違反**: PlayerHandSOというデータオブジェクトがロジックを持っている
+2. **重複した判定**: 複数箇所で同様のロジックが実装される可能性
+3. **テストの複雑さ**: MockRuleValidatorが必要で、テストが冗長
+4. **Phase 2への拡張性**: 革命・縛りなどの複雑なルール追加時、修正箇所が分散
+
+### リファクタリング方針
+**単一の純粋C#クラスに統合**
+
+#### 新しいアーキテクチャ
+```
+FieldState (struct)
+  ↓ データ
+PlayableCardsCalculator (純粋クラス)
+  ↓ ルール設定
+GameRulesSO (ScriptableObject)
+```
+
+#### 実装詳細
+
+**FieldState（データ構造）**:
+```csharp
+public struct FieldState
+{
+    public bool IsEmpty { get; }
+    public CardSO CurrentCard { get; }
+    public int Strength { get; }
+
+    public static FieldState Empty();
+    public static FieldState FromCard(CardSO card);
+}
+```
+- 場の状態を表す軽量なデータ構造
+- Phase 2で革命状態などを追加予定
+
+**GameRulesSO（ルール設定）**:
+```csharp
+[CreateAssetMenu(...)]
+public class GameRulesSO : ScriptableObject
+{
+    [SerializeField] private bool enableRevolution = false;  // Phase 2
+    [SerializeField] private bool enable8Cut = true;         // Phase 1
+    [SerializeField] private bool enableBind = false;        // Phase 2
+    [SerializeField] private bool enableSpade3Return = false; // Phase 2
+}
+```
+- どのルールが有効/無効かを設定
+- Phase 1では8-cutのみ実装、他はPhase 2用に準備
+
+**PlayableCardsCalculator（ロジック）**:
+```csharp
+public class PlayableCardsCalculator
+{
+    public List<CardSO> GetPlayableCards(PlayerHandSO hand, FieldState fieldState, GameRulesSO gameRules);
+    public bool CanPlayCard(CardSO card, FieldState fieldState, GameRulesSO gameRules);
+    public bool IsCardInHand(CardSO card, PlayerHandSO hand);
+}
+```
+- 純粋C#クラス（MonoBehaviourでもScriptableObjectでもない）
+- 副作用なし、テストが容易
+- Constructor Injectionで GameRulesSO を受け取る
+
+#### 依存性注入パターン
+```csharp
+// GameManager.cs
+private GameLogic gameLogic;
+[SerializeField] private GameRulesSO gameRules;
+
+private void Awake()
+{
+    gameLogic = new GameLogic(gameRules);
+}
+
+// GameLogic.cs
+public class GameLogic
+{
+    private readonly PlayableCardsCalculator calculator;
+    private readonly GameRulesSO gameRules;
+
+    public GameLogic(GameRulesSO gameRules)
+    {
+        calculator = new PlayableCardsCalculator();
+        this.gameRules = gameRules;
+    }
+}
+```
+
+### 削除したコンポーネント
+- `PlayerHandSO.GetPlayableCards()` メソッド
+- `RuleValidator.cs`
+- `PlayableCardService.cs`
+- `IRuleValidator` インターフェース
+- `MockRuleValidator.cs`
+- `RuleValidatorTests.cs`
+- `PlayableCardServiceTests.cs`
+
+### 修正したコンポーネント
+- `GameLogic` - PlayableCardsCalculator使用、GameRulesSOを注入
+- `GameManager` - GameRulesSOをSerializeFieldで保持
+- `AIPlayerStrategy` - PlayableCardsCalculator使用、GameRulesSOを注入
+- `AIController` - GameRulesSOをSerializeFieldで保持
+- `GameScreenUI` - PlayableCardsCalculator使用、ターン判定をUI層に移動
+- `GameLogicTests` - MockRuleValidator削除、GameRulesSOを直接使用
+- `AIPlayerStrategyTests` - GameRulesSOを注入
+
+### 新規作成したコンポーネント
+- `FieldState.cs` - 場の状態データ構造
+- `GameRulesSO.cs` - ルール設定ScriptableObject
+- `PlayableCardsCalculator.cs` - プレイ可能カード判定ロジック
+- `PlayableCardsCalculatorTests.cs` - Edit Modeテスト（17テストケース）
+
+### 利点
+1. **単一責任**: データ・ルール・ロジックが明確に分離
+2. **テスト容易性**: 純粋関数、Edit Modeで高速テスト、モック不要
+3. **Phase 2拡張性**: FieldStateとGameRulesSOに拡張ポイントが明確
+4. **YAGNI準拠**: 不要な抽象化（IRuleValidator）を削除
+5. **Functional Core**: ロジックがUnityから完全に独立
+
+### Phase 2への拡張例
+```csharp
+// 革命ルールを追加する場合
+public struct FieldState
+{
+    public bool IsRevolutionActive { get; set; }  // 追加
+}
+
+public bool CanPlayCard(CardSO card, FieldState fieldState, GameRulesSO gameRules)
+{
+    if (fieldState.IsEmpty) return true;
+
+    // 革命時は判定反転
+    if (gameRules.IsRevolutionEnabled && fieldState.IsRevolutionActive)
+    {
+        return card.GetStrength() < fieldState.Strength;
+    }
+
+    return card.GetStrength() > fieldState.Strength;
+}
+```
+
+### 理由
+- アーキテクチャの質的向上
+- 純粋関数的アプローチによるバグ削減
+- 将来の拡張を見越した最小限の実装
+- コーディング規約への完全準拠
+
+---
+
 ## まとめ
 
 これらの設計判断により、Phase 1の仕様が明確になった。

@@ -20,6 +20,9 @@ namespace Daifugo.UI
         [Tooltip("Player hands (0 = Human, 1-3 = AI)")]
         [SerializeField] private PlayerHandSO[] playerHands = new PlayerHandSO[4];
 
+        [Tooltip("Game rules configuration")]
+        [SerializeField] private GameRulesSO gameRules;
+
         [Header("Card Visuals")]
         [Tooltip("Card back sprite for CPU animations")]
         [SerializeField] private Sprite cardBackSprite;
@@ -81,12 +84,12 @@ namespace Daifugo.UI
         private MotionHandle currentCardAnimationHandle;
 
         // Services
-        private PlayableCardService playableCardService;
+        private PlayableCardsCalculator calculator;
 
         private void Awake()
         {
             uiDocument = GetComponent<UIDocument>();
-            playableCardService = new PlayableCardService();
+            calculator = new PlayableCardsCalculator();
         }
 
         private void OnEnable()
@@ -655,23 +658,27 @@ namespace Daifugo.UI
 
         /// <summary>
         /// Updates the highlight for playable cards
-        /// Uses PlayableCardService for pure logic separation
+        /// Uses PlayableCardsCalculator for pure logic separation
         /// </summary>
         private void UpdatePlayableCardsHighlight()
         {
             if (playerHandUI == null || playerHands == null || playerHands.Length == 0) return;
 
+            // Not player's turn - no cards are playable
+            if (currentPlayerID != 0)
+            {
+                playerHandUI.HighlightPlayableCards(new List<CardSO>());
+                return;
+            }
+
             // Get current field card (null if field is empty)
             CardSO fieldCard = currentFieldCardUI?.CardData;
 
-            // Use service to determine playable cards
-            // Service handles turn validation and returns empty list if not player's turn
-            var playableCards = playableCardService.GetPlayableCardsForPlayer(
-                currentPlayerID: currentPlayerID,
-                targetPlayerID: 0, // Human player is always ID 0
-                hand: playerHands[0],
-                fieldCard: fieldCard
-            );
+            // Use calculator to determine playable cards
+            var fieldState = fieldCard == null
+                ? FieldState.Empty()
+                : FieldState.FromCard(fieldCard);
+            var playableCards = calculator.GetPlayableCards(playerHands[0], fieldState, gameRules);
 
             // Highlight playable cards in UI
             playerHandUI.HighlightPlayableCards(playableCards);

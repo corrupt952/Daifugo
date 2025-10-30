@@ -1,4 +1,5 @@
 using System.Linq;
+using Daifugo.Core;
 using Daifugo.Data;
 
 namespace Daifugo.AI
@@ -10,6 +11,19 @@ namespace Daifugo.AI
     /// </summary>
     public class AIPlayerStrategy
     {
+        private readonly PlayableCardsCalculator calculator;
+        private readonly GameRulesSO gameRules;
+
+        /// <summary>
+        /// Creates a new AIPlayerStrategy instance
+        /// </summary>
+        /// <param name="gameRules">Game rules configuration</param>
+        public AIPlayerStrategy(GameRulesSO gameRules)
+        {
+            calculator = new PlayableCardsCalculator();
+            this.gameRules = gameRules;
+        }
+
         /// <summary>
         /// Decides which card to play or whether to pass
         /// </summary>
@@ -24,9 +38,11 @@ namespace Daifugo.AI
                 return null;
             }
 
-            // 1. Get playable cards based on field strength
-            int fieldStrength = fieldCard?.GetStrength() ?? 0;
-            var playableCards = hand.GetPlayableCards(fieldStrength);
+            // 1. Get playable cards based on field state
+            var fieldState = fieldCard == null
+                ? FieldState.Empty()
+                : FieldState.FromCard(fieldCard);
+            var playableCards = calculator.GetPlayableCards(hand, fieldState, gameRules);
 
             // 2. If no playable cards, return null (pass)
             if (playableCards.Count == 0)

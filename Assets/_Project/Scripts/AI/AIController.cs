@@ -20,6 +20,9 @@ namespace Daifugo.AI
         [Tooltip("Player hands array (0 = Human, 1-3 = AI)")]
         [SerializeField] private PlayerHandSO[] playerHands;
 
+        [Tooltip("Game rules configuration")]
+        [SerializeField] private GameRulesSO gameRules;
+
         [Header("Events - Subscribe")]
         [Tooltip("Raised when game starts")]
         [SerializeField] private VoidEventChannelSO onGameStarted;
@@ -53,7 +56,7 @@ namespace Daifugo.AI
         private void Awake()
         {
             // Initialize pure C# AI strategy
-            aiStrategy = new AIPlayerStrategy();
+            aiStrategy = new AIPlayerStrategy(gameRules);
         }
 
         private void OnEnable()

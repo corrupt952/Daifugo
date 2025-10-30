@@ -34,28 +34,43 @@ namespace Daifugo.Core
     /// </summary>
     public class GameLogic
     {
+        private readonly PlayableCardsCalculator calculator;
+        private readonly GameRulesSO gameRules;
+
+        /// <summary>
+        /// Creates a new GameLogic instance
+        /// </summary>
+        /// <param name="gameRules">Game rules configuration</param>
+        public GameLogic(GameRulesSO gameRules)
+        {
+            calculator = new PlayableCardsCalculator();
+            this.gameRules = gameRules;
+        }
+
         /// <summary>
         /// Executes card play logic with validation and special rules
         /// </summary>
         /// <param name="card">Card to play</param>
         /// <param name="hand">Player's hand</param>
         /// <param name="currentFieldCard">Current card on field (null if empty)</param>
-        /// <param name="validator">Rule validator for game rules</param>
         /// <returns>Result of the card play operation</returns>
         public CardPlayResult PlayCard(
             CardSO card,
             PlayerHandSO hand,
-            CardSO currentFieldCard,
-            IRuleValidator validator)
+            CardSO currentFieldCard)
         {
             // Validation 1: Check if card is in hand
-            if (!validator.IsCardInHand(card, hand))
+            if (!calculator.IsCardInHand(card, hand))
             {
                 return CardPlayResult.Fail("Card not in hand");
             }
 
             // Validation 2: Check if card can be played on current field
-            if (!validator.CanPlayCard(card, currentFieldCard))
+            var fieldState = currentFieldCard == null
+                ? FieldState.Empty()
+                : FieldState.FromCard(currentFieldCard);
+
+            if (!calculator.CanPlayCard(card, fieldState, gameRules))
             {
                 return CardPlayResult.Fail("Cannot play this card on current field");
             }
@@ -93,22 +108,6 @@ namespace Daifugo.Core
 
             return false;
         }
-    }
-
-    /// <summary>
-    /// Interface for rule validation (allows mocking in tests)
-    /// </summary>
-    public interface IRuleValidator
-    {
-        /// <summary>
-        /// Checks if a card is in a player's hand
-        /// </summary>
-        bool IsCardInHand(CardSO card, PlayerHandSO hand);
-
-        /// <summary>
-        /// Checks if a card can be played on the current field
-        /// </summary>
-        bool CanPlayCard(CardSO card, CardSO currentFieldCard);
     }
 
     /// <summary>
