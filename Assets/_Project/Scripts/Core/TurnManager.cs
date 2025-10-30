@@ -58,7 +58,7 @@ namespace Daifugo.Core
         }
 
         /// <summary>
-        /// Handles a card being played
+        /// Handles a card being played (legacy method - use AdvanceTurn instead)
         /// </summary>
         /// <param name="playerID">Player who played the card</param>
         public void OnCardPlayed(int playerID)
@@ -66,6 +66,40 @@ namespace Daifugo.Core
             lastCardPlayerID = playerID; // Update parent
             passedPlayers.Clear(); // Clear pass records
             NextTurn();
+        }
+
+        /// <summary>
+        /// Advances turn based on turn advancement type
+        /// </summary>
+        /// <param name="playerID">Player who played the card</param>
+        /// <param name="advanceType">How to advance the turn</param>
+        public void AdvanceTurn(int playerID, TurnAdvanceType advanceType)
+        {
+            switch (advanceType)
+            {
+                case TurnAdvanceType.NextPlayer:
+                    // Normal card play: update parent, clear passes, advance turn
+                    lastCardPlayerID = playerID;
+                    passedPlayers.Clear();
+                    NextTurn();
+                    break;
+
+                case TurnAdvanceType.SamePlayer:
+                    // Special rule (8-cut, etc.): update parent, clear passes, stay on same player
+                    lastCardPlayerID = playerID;
+                    passedPlayers.Clear();
+                    onTurnChanged.RaiseEvent(currentPlayerID);
+                    break;
+
+                case TurnAdvanceType.SkipFinished:
+                    // Future: Skip finished players
+                    Debug.LogWarning("[TurnManager] SkipFinished not yet implemented");
+                    break;
+
+                case TurnAdvanceType.GameEnd:
+                    // Game ended: do nothing (GameManager handles this)
+                    break;
+            }
         }
 
         /// <summary>

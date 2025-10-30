@@ -49,6 +49,15 @@ namespace Daifugo.Core
         private CardSO currentFieldCard;
         private bool isGameActive;
 
+        // Pure C# game logic (testable)
+        private GameLogic gameLogic;
+
+        private void Awake()
+        {
+            // Initialize pure C# game logic
+            gameLogic = new GameLogic();
+        }
+
         private void OnEnable()
         {
             // Subscribe to command events
@@ -138,7 +147,7 @@ namespace Daifugo.Core
 
         /// <summary>
         /// Handles card play request from UI or AI (Command Event)
-        /// Validates the play, executes it, and raises notification events
+        /// Uses GameLogic for testable card play logic with special rules (e.g., 8-cut)
         /// </summary>
         private void HandlePlayCardRequested(CardSO card)
         {
@@ -152,44 +161,59 @@ namespace Daifugo.Core
             int currentPlayer = turnManager.GetCurrentPlayer();
             PlayerHandSO hand = playerHands[currentPlayer];
 
-            // 1. Validation - check if card is in current player's hand
-            if (!ruleValidator.IsCardInHand(card, hand))
+            // Execute card play logic (testable)
+            CardPlayResult result = gameLogic.PlayCard(card, hand, currentFieldCard, ruleValidator);
+
+            // Handle failure
+            if (!result.IsSuccess)
             {
-                Debug.LogWarning($"[GameManager] Card {card.name} is not in player {currentPlayer}'s hand.");
+                Debug.LogWarning($"[GameManager] Card play failed: {result.ErrorMessage}");
                 return;
             }
 
-            // 2. Validation - check if card can be played on current field
-            if (!ruleValidator.CanPlayCard(card, currentFieldCard))
-            {
-                Debug.LogWarning($"[GameManager] Cannot play {card.name} on {currentFieldCard?.name ?? "empty field"}.");
-                return;
-            }
-
-            // 3. Execute card play
-            hand.RemoveCard(card);
-            currentFieldCard = card;
+            // Update field card
+            currentFieldCard = result.NewFieldCard;
 
             Debug.Log($"[GameManager] Player {currentPlayer} played {card.CardSuit} {card.Rank}");
 
-            // 4. Raise notification event (for UI and other observers)
+            // Create callback for post-animation processing
+            // This will be invoked by UI after card animation completes
+            // Ensures game logic executes after visual feedback, maintaining proper game progression timeline
+            System.Action onAnimationComplete = () =>
+            {
+                // Step 1: Check for special rules (8-cut)
+                // Must execute before win check - even if last card is 8, field resets for potential continuation
+                if (result.ShouldResetField)
+                {
+                    Debug.Log("[GameManager] 8-cut activated! Field will reset.");
+                    currentFieldCard = null;
+                    onFieldReset.RaiseEvent();
+                }
+
+                // Step 2: Check win condition
+                // If player has no cards left, game ends immediately (no turn advance)
+                if (result.IsWin)
+                {
+                    EndGame(currentPlayer);
+                    return;
+                }
+
+                // Step 3: Advance turn based on result
+                // TurnAdvanceType is derived from special rules:
+                // - SamePlayer: 8-cut or other special rules that grant another turn
+                // - NextPlayer: Normal card play
+                turnManager.AdvanceTurn(currentPlayer, result.TurnAdvanceType);
+            };
+
+            // Raise notification event (for UI and other observers)
             var playedData = new CardPlayedEventData
             {
                 Card = card,
                 PlayerID = currentPlayer,
-                FieldCard = currentFieldCard
+                FieldCard = currentFieldCard,
+                OnAnimationComplete = onAnimationComplete
             };
             onCardPlayed.RaiseEvent(playedData);
-
-            // 5. Check win condition
-            if (hand.IsEmpty)
-            {
-                EndGame(currentPlayer);
-                return;
-            }
-
-            // 6. Advance turn (notify TurnManager)
-            turnManager.OnCardPlayed(currentPlayer);
         }
 
         /// <summary>

@@ -75,6 +75,9 @@ namespace Daifugo.UI
         // Field cards
         private CardUI currentFieldCardUI;
 
+        // Animation handles for cancellation
+        private MotionHandle currentCardAnimationHandle;
+
         private void Awake()
         {
             uiDocument = GetComponent<UIDocument>();
@@ -384,18 +387,19 @@ namespace Daifugo.UI
                 // Human player: animate from hand position if available
                 if (sourceCardRect.HasValue)
                 {
-                    AnimateCardToField(eventData.FieldCard, sourceCardRect.Value);
+                    AnimateCardToField(eventData.FieldCard, sourceCardRect.Value, eventData.OnAnimationComplete);
                 }
                 else
                 {
-                    // Fallback: display immediately
+                    // Fallback: display immediately and invoke callback
                     DisplayCardOnField(eventData.FieldCard);
+                    eventData.OnAnimationComplete?.Invoke();
                 }
             }
             else
             {
                 // CPU player: animate with flip from opponent hand
-                AnimateCPUCardToField(eventData.FieldCard, eventData.PlayerID);
+                AnimateCPUCardToField(eventData.FieldCard, eventData.PlayerID, eventData.OnAnimationComplete);
             }
 
             // Update opponent hands display
@@ -410,7 +414,8 @@ namespace Daifugo.UI
         /// </summary>
         /// <param name="card">The card to animate</param>
         /// <param name="sourceRect">The source card position (worldBound)</param>
-        private void AnimateCardToField(CardSO card, Rect sourceRect)
+        /// <param name="onComplete">Callback invoked after animation completes</param>
+        private void AnimateCardToField(CardSO card, Rect sourceRect, System.Action onComplete = null)
         {
             if (fieldCardsContainer == null || card == null) return;
 
@@ -441,7 +446,7 @@ namespace Daifugo.UI
             Vector2 startPos = new Vector2(sourceRect.x, sourceRect.y);
 
             // Animate using LitMotion (frame-rate independent)
-            LMotion.Create(startPos, targetCenter, animationDuration)
+            currentCardAnimationHandle = LMotion.Create(startPos, targetCenter, animationDuration)
                 .WithEase(Ease.OutCubic)
                 .WithOnComplete(() =>
                 {
@@ -450,6 +455,16 @@ namespace Daifugo.UI
 
                     // Display actual card on field
                     DisplayCardOnField(card);
+
+                    // Wait 0.5s before invoking callback to let player see the card
+                    // UX Design: Ensures player can visually confirm played card before game state changes
+                    // Note: This fixed delay may be replaced with visual effects (particle, glow, etc.) in future
+                    if (onComplete != null)
+                    {
+                        LMotion.Create(0f, 1f, 0.5f)
+                            .WithOnComplete(() => onComplete.Invoke())
+                            .RunWithoutBinding();
+                    }
                 })
                 .Bind(pos =>
                 {
@@ -464,7 +479,8 @@ namespace Daifugo.UI
         /// </summary>
         /// <param name="card">The card to animate</param>
         /// <param name="cpuPlayerID">CPU player ID (1-3)</param>
-        private void AnimateCPUCardToField(CardSO card, int cpuPlayerID)
+        /// <param name="onComplete">Callback invoked after animation completes</param>
+        private void AnimateCPUCardToField(CardSO card, int cpuPlayerID, System.Action onComplete = null)
         {
             if (fieldCardsContainer == null || card == null || cardBackSprite == null) return;
 
@@ -525,12 +541,12 @@ namespace Daifugo.UI
             float moveDuration = 0.3f;
 
             // Step 1: Move animation
-            LMotion.Create(startPos, targetCenter, moveDuration)
+            currentCardAnimationHandle = LMotion.Create(startPos, targetCenter, moveDuration)
                 .WithEase(Ease.OutCubic)
                 .WithOnComplete(() =>
                 {
                     // Step 2: Flip animation after landing
-                    AnimateCardFlip(animatedCard, cardImage, card);
+                    AnimateCardFlip(animatedCard, cardImage, card, onComplete);
                 })
                 .Bind(pos =>
                 {
@@ -545,7 +561,8 @@ namespace Daifugo.UI
         /// <param name="cardElement">The card visual element</param>
         /// <param name="imageElement">The card image element</param>
         /// <param name="card">The card data</param>
-        private void AnimateCardFlip(VisualElement cardElement, VisualElement imageElement, CardSO card)
+        /// <param name="onComplete">Callback invoked after animation completes</param>
+        private void AnimateCardFlip(VisualElement cardElement, VisualElement imageElement, CardSO card, System.Action onComplete = null)
         {
             float flipDuration = 0.2f;
 
@@ -567,6 +584,16 @@ namespace Daifugo.UI
 
                             // Display actual card on field
                             DisplayCardOnField(card);
+
+                            // Wait 0.5s before invoking callback to let player see the card
+                            // UX Design: Ensures player can visually confirm played card before game state changes
+                            // Note: This fixed delay may be replaced with visual effects (particle, glow, etc.) in future
+                            if (onComplete != null)
+                            {
+                                LMotion.Create(0f, 1f, 0.5f)
+                                    .WithOnComplete(() => onComplete.Invoke())
+                                    .RunWithoutBinding();
+                            }
                         })
                         .Bind(scale =>
                         {
@@ -603,6 +630,12 @@ namespace Daifugo.UI
         private void HandleFieldReset()
         {
             if (fieldCardsContainer == null) return;
+
+            // Cancel any ongoing card animation
+            if (currentCardAnimationHandle.IsActive())
+            {
+                currentCardAnimationHandle.Cancel();
+            }
 
             // Clear field
             fieldCardsContainer.Clear();
