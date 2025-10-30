@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Daifugo.Core;
 using Daifugo.Data;
 using Daifugo.Events;
 using LitMotion;
@@ -79,9 +80,13 @@ namespace Daifugo.UI
         // Animation handles for cancellation
         private MotionHandle currentCardAnimationHandle;
 
+        // Services
+        private PlayableCardService playableCardService;
+
         private void Awake()
         {
             uiDocument = GetComponent<UIDocument>();
+            playableCardService = new PlayableCardService();
         }
 
         private void OnEnable()
@@ -650,30 +655,25 @@ namespace Daifugo.UI
 
         /// <summary>
         /// Updates the highlight for playable cards
+        /// Uses PlayableCardService for pure logic separation
         /// </summary>
         private void UpdatePlayableCardsHighlight()
         {
             if (playerHandUI == null || playerHands == null || playerHands.Length == 0) return;
 
-            // Only highlight during player's turn
-            if (currentPlayerID != 0)
-            {
-                // Clear highlights when not player's turn
-                playerHandUI.HighlightPlayableCards(new List<CardSO>());
-                return;
-            }
+            // Get current field card (null if field is empty)
+            CardSO fieldCard = currentFieldCardUI?.CardData;
 
-            // Get current field card strength
-            int fieldStrength = 0;
-            if (currentFieldCardUI != null && currentFieldCardUI.CardData != null)
-            {
-                fieldStrength = currentFieldCardUI.CardData.GetStrength();
-            }
+            // Use service to determine playable cards
+            // Service handles turn validation and returns empty list if not player's turn
+            var playableCards = playableCardService.GetPlayableCardsForPlayer(
+                currentPlayerID: currentPlayerID,
+                targetPlayerID: 0, // Human player is always ID 0
+                hand: playerHands[0],
+                fieldCard: fieldCard
+            );
 
-            // Get playable cards from player hand
-            var playableCards = playerHands[0].GetPlayableCards(fieldStrength);
-
-            // Highlight playable cards
+            // Highlight playable cards in UI
             playerHandUI.HighlightPlayableCards(playableCards);
         }
 
