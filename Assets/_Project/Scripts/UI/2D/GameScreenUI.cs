@@ -724,5 +724,73 @@ namespace Daifugo.UI
                 container.Add(cardBack);
             }
         }
+
+#if UNITY_EDITOR
+        /// <summary>
+        /// Validates Inspector settings
+        /// </summary>
+        private void OnValidate()
+        {
+            // Validate player hands array
+            if (playerHands == null || playerHands.Length != 4)
+            {
+                Debug.LogWarning($"[{GetType().Name}] playerHands array must have exactly 4 elements on {gameObject.name}.", this);
+            }
+            else
+            {
+                // Validate each player hand is assigned
+                for (int i = 0; i < playerHands.Length; i++)
+                {
+                    if (playerHands[i] == null)
+                    {
+                        Debug.LogWarning($"[{GetType().Name}] playerHands[{i}] is not assigned on {gameObject.name}.", this);
+                    }
+                }
+            }
+
+            // Validate card back sprite
+            if (cardBackSprite == null)
+            {
+                Debug.LogWarning($"[{GetType().Name}] cardBackSprite is not assigned on {gameObject.name}.", this);
+            }
+
+            // Validate event channels (Subscribe)
+            if (onGameStarted == null)
+            {
+                Debug.LogWarning($"[{GetType().Name}] onGameStarted is not assigned on {gameObject.name}.", this);
+            }
+
+            if (onTurnChanged == null)
+            {
+                Debug.LogWarning($"[{GetType().Name}] onTurnChanged is not assigned on {gameObject.name}.", this);
+            }
+
+            if (onCardPlayed == null)
+            {
+                Debug.LogWarning($"[{GetType().Name}] onCardPlayed is not assigned on {gameObject.name}.", this);
+            }
+
+            if (onFieldReset == null)
+            {
+                Debug.LogWarning($"[{GetType().Name}] onFieldReset is not assigned on {gameObject.name}.", this);
+            }
+
+            if (onGameEnded == null)
+            {
+                Debug.LogWarning($"[{GetType().Name}] onGameEnded is not assigned on {gameObject.name}.", this);
+            }
+
+            // Validate event channels (Raise)
+            if (onPlayCardRequested == null)
+            {
+                Debug.LogWarning($"[{GetType().Name}] onPlayCardRequested is not assigned on {gameObject.name}.", this);
+            }
+
+            if (onPassButtonClicked == null)
+            {
+                Debug.LogWarning($"[{GetType().Name}] onPassButtonClicked is not assigned on {gameObject.name}.", this);
+            }
+        }
+#endif
     }
 }
