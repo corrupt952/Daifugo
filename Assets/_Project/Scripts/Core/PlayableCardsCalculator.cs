@@ -24,6 +24,7 @@ namespace Daifugo.Core
             GameRulesSO gameRules)
         {
             if (hand == null) return new List<CardSO>();
+            if (hand.Cards == null) return new List<CardSO>();
 
             // 場が空 → 全カード出せる
             if (fieldState.IsEmpty)

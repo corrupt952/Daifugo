@@ -116,8 +116,8 @@ namespace Daifugo.Tests.Core
             FieldState state2 = FieldState.AddCard(state1, card2);
 
             // Act & Assert
-            Assert.IsFalse(state1.IsBindingActive(rules), "1枚目では縛りなし");
-            Assert.IsTrue(state2.IsBindingActive(rules), "2枚目で縛り発動");
+            Assert.IsFalse(state1.IsBindingActive(rules), "No binding with first card");
+            Assert.IsTrue(state2.IsBindingActive(rules), "Binding activates with second card");
         }
 
         /// <summary>
@@ -135,7 +135,7 @@ namespace Daifugo.Tests.Core
             FieldState state2 = FieldState.AddCard(state1, card2);
 
             // Act & Assert
-            Assert.IsFalse(state2.IsBindingActive(rules), "異なるスートでは縛りなし");
+            Assert.IsFalse(state2.IsBindingActive(rules), "No binding with different suits");
         }
 
         /// <summary>
@@ -153,7 +153,7 @@ namespace Daifugo.Tests.Core
             FieldState state2 = FieldState.AddCard(state1, card2);
 
             // Act & Assert
-            Assert.IsFalse(state2.IsBindingActive(rules), "ルール無効時は縛りなし");
+            Assert.IsFalse(state2.IsBindingActive(rules), "No binding when rule is disabled");
         }
 
         /// <summary>
@@ -173,7 +173,7 @@ namespace Daifugo.Tests.Core
             FieldState state3 = FieldState.AddCard(state2, card3);
 
             // Act & Assert
-            Assert.IsTrue(state3.IsBindingActive(rules), "縛り継続");
+            Assert.IsTrue(state3.IsBindingActive(rules), "Binding continues");
         }
 
         /// <summary>
@@ -193,8 +193,8 @@ namespace Daifugo.Tests.Core
             FieldState state3 = FieldState.AddCard(state2, card3);
 
             // Act & Assert
-            Assert.IsTrue(state2.IsBindingActive(rules), "2枚目で縛り発動");
-            Assert.IsFalse(state3.IsBindingActive(rules), "異なるスートで縛り解除");
+            Assert.IsTrue(state2.IsBindingActive(rules), "Binding activates with second card");
+            Assert.IsFalse(state3.IsBindingActive(rules), "Binding breaks with different suit");
         }
 
         #endregion

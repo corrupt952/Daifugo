@@ -306,7 +306,7 @@ namespace Daifugo.Tests.Core
             bool canPlay = calculator.CanPlayCard(heart10, state, rules);
 
             // Assert
-            Assert.IsFalse(canPlay, "縛り中は異なるスート出せない");
+            Assert.IsFalse(canPlay, "Cannot play different suit during binding");
         }
 
         /// <summary>
@@ -328,7 +328,7 @@ namespace Daifugo.Tests.Core
             bool canPlay = calculator.CanPlayCard(spade9, state, rules);
 
             // Assert
-            Assert.IsTrue(canPlay, "縛り中でも同じスートで強ければ出せる");
+            Assert.IsTrue(canPlay, "Can play same suit stronger card during binding");
         }
 
         /// <summary>
@@ -350,7 +350,7 @@ namespace Daifugo.Tests.Core
             bool canPlay = calculator.CanPlayCard(spade5, state, rules);
 
             // Assert
-            Assert.IsFalse(canPlay, "縛り中でも弱いカードは出せない");
+            Assert.IsFalse(canPlay, "Cannot play weaker card even with same suit during binding");
         }
 
         /// <summary>
@@ -372,7 +372,7 @@ namespace Daifugo.Tests.Core
             bool canPlay = calculator.CanPlayCard(heart10, state, rules);
 
             // Assert
-            Assert.IsTrue(canPlay, "縛りルール無効時は異なるスートも出せる");
+            Assert.IsTrue(canPlay, "Can play different suit when binding is disabled");
         }
 
         /// <summary>
@@ -398,8 +398,8 @@ namespace Daifugo.Tests.Core
             var playableCards = calculator.GetPlayableCards(hand, state, rules);
 
             // Assert
-            Assert.AreEqual(1, playableCards.Count, "縛り中はスペードのみ");
-            Assert.AreEqual(spade9, playableCards[0], "スペード9のみ出せる");
+            Assert.AreEqual(1, playableCards.Count, "Only Spades are playable during binding");
+            Assert.AreEqual(spade9, playableCards[0], "Only Spade 9 is playable");
         }
 
         #endregion
