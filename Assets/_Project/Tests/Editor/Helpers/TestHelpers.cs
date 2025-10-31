@@ -67,6 +67,30 @@ namespace Daifugo.Tests.Helpers
         }
 
         /// <summary>
+        /// Creates a Joker card for testing
+        /// </summary>
+        /// <param name="isRed">True for red joker, false for black joker</param>
+        /// <returns>CardSO instance with IsJoker = true</returns>
+        public static CardSO CreateJoker(bool isRed)
+        {
+            var joker = ScriptableObject.CreateInstance<CardSO>();
+
+            // Use reflection to set private fields
+            var suitField = typeof(CardSO).GetField("suit", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var rankField = typeof(CardSO).GetField("rank", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var isJokerField = typeof(CardSO).GetField("isJoker", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+            // Joker has no meaningful suit (use Spade by convention)
+            suitField?.SetValue(joker, CardSO.Suit.Spade);
+            // Joker has rank 0 (special value)
+            rankField?.SetValue(joker, 0);
+            // Set isJoker flag
+            isJokerField?.SetValue(joker, true);
+
+            return joker;
+        }
+
+        /// <summary>
         /// Creates a GameRulesSO instance for testing
         /// </summary>
         /// <param name="enableRevolution">革命ルールを有効にするか</param>

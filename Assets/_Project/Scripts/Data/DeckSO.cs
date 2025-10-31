@@ -5,13 +5,13 @@ using UnityEngine;
 namespace Daifugo.Data
 {
     /// <summary>
-    /// Manages the deck of 52 cards for Daifugo game
+    /// Manages the deck of cards for Daifugo game (52 regular cards + 2 Jokers = 54 cards)
     /// </summary>
     [CreateAssetMenu(fileName = "Deck", menuName = "Daifugo/Data/Deck")]
     public class DeckSO : ScriptableObject
     {
         [Header("Deck Configuration")]
-        [Tooltip("All 52 CardSO references (13 ranks × 4 suits)")]
+        [Tooltip("All 54 CardSO references (13 ranks × 4 suits + 2 Jokers)")]
         [SerializeField] private List<CardSO> allCards = new();
 
         [Header("Runtime State")]
@@ -38,10 +38,10 @@ namespace Daifugo.Data
         /// </summary>
         public void Initialize()
         {
-            // Validate deck has exactly 52 cards
-            if (allCards == null || allCards.Count != 52)
+            // Validate deck has exactly 54 cards (52 regular + 2 Jokers)
+            if (allCards == null || allCards.Count != 54)
             {
-                Debug.LogError($"[DeckSO] Initialize: allCards must contain exactly 52 cards. Current count: {allCards?.Count ?? 0}", this);
+                Debug.LogError($"[DeckSO] Initialize: allCards must contain exactly 54 cards. Current count: {allCards?.Count ?? 0}", this);
                 currentDeck.Clear();
                 return;
             }
@@ -127,10 +127,10 @@ namespace Daifugo.Data
 #if UNITY_EDITOR
         private void OnValidate()
         {
-            // Validate deck has exactly 52 cards
-            if (allCards.Count != 52)
+            // Validate deck has exactly 54 cards (52 regular + 2 Jokers)
+            if (allCards.Count != 54)
             {
-                Debug.LogWarning($"[DeckSO] Deck should contain 52 cards, but has {allCards.Count} cards.", this);
+                Debug.LogWarning($"[DeckSO] Deck should contain 54 cards, but has {allCards.Count} cards.", this);
             }
 
             // Validate no null references
@@ -139,9 +139,10 @@ namespace Daifugo.Data
                 Debug.LogWarning($"[DeckSO] Deck contains null CardSO references.", this);
             }
 
-            // Check for duplicates (same suit + rank)
+            // Check for duplicates (same suit + rank, excluding Jokers)
+            // Note: Jokers have IsJoker=true, so we need to filter them out from duplicate check
             var duplicates = allCards
-                .Where(c => c != null)
+                .Where(c => c != null && !c.IsJoker)
                 .GroupBy(c => (c.CardSuit, c.Rank))
                 .Where(g => g.Count() > 1)
                 .Select(g => $"{g.Key.CardSuit} {g.Key.Rank}")
@@ -150,6 +151,13 @@ namespace Daifugo.Data
             if (duplicates.Count > 0)
             {
                 Debug.LogWarning($"[DeckSO] Duplicate cards detected: {string.Join(", ", duplicates)}", this);
+            }
+
+            // Validate Joker count (should be exactly 2)
+            int jokerCount = allCards.Count(c => c != null && c.IsJoker);
+            if (jokerCount != 2)
+            {
+                Debug.LogWarning($"[DeckSO] Deck should contain exactly 2 Jokers, but has {jokerCount} Jokers.", this);
             }
         }
 #endif
