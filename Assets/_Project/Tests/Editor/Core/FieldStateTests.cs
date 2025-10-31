@@ -422,6 +422,62 @@ namespace Daifugo.Tests.Core
             Assert.AreEqual(15, state2.Strength, "Two strength should be 15");
         }
 
+        /// <summary>
+        /// Test: Joker does not trigger binding (Joker has no suit)
+        /// </summary>
+        [Test]
+        public void IsBindingActive_JokerAsSecondCard_ReturnsFalse()
+        {
+            // Arrange
+            CardSO spadeCard = TestHelpers.CreateCard(CardSO.Suit.Spade, 5);
+            CardSO joker = TestHelpers.CreateJoker(isRed: true);
+            GameRulesSO rules = TestHelpers.CreateGameRules(enableBind: true);
+
+            // Act
+            FieldState state = FieldState.AddCard(FieldState.Empty(), spadeCard);
+            state = FieldState.AddCard(state, joker); // Spade + Joker
+
+            // Assert
+            Assert.IsFalse(state.IsBindingActive(rules), "Joker should not trigger binding (has no suit)");
+        }
+
+        /// <summary>
+        /// Test: Joker breaks existing binding
+        /// </summary>
+        [Test]
+        public void IsBindingActive_JokerBreaksBinding_ReturnsFalse()
+        {
+            // Arrange
+            CardSO heart5 = TestHelpers.CreateCard(CardSO.Suit.Heart, 5);
+            CardSO heart7 = TestHelpers.CreateCard(CardSO.Suit.Heart, 7);
+            CardSO joker = TestHelpers.CreateJoker(isRed: true);
+            GameRulesSO rules = TestHelpers.CreateGameRules(enableBind: true);
+
+            // Act
+            FieldState state = FieldState.AddCard(FieldState.Empty(), heart5);
+            state = FieldState.AddCard(state, heart7); // Hearts binding active
+            state = FieldState.AddCard(state, joker);  // Joker breaks binding
+
+            // Assert
+            Assert.IsFalse(state.IsBindingActive(rules), "Joker should break binding");
+        }
+
+        /// <summary>
+        /// Test: Joker strength is 16 (beats rank 2)
+        /// </summary>
+        [Test]
+        public void Strength_Joker_Returns16()
+        {
+            // Arrange
+            CardSO joker = TestHelpers.CreateJoker(isRed: true);
+
+            // Act
+            FieldState state = FieldState.AddCard(FieldState.Empty(), joker);
+
+            // Assert
+            Assert.AreEqual(16, state.Strength, "Joker strength should be 16 (beats rank 2's 15)");
+        }
+
         #endregion
     }
 }

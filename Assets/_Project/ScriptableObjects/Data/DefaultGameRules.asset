@@ -12,7 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8f5114549b1574907bd6119e829f50af, type: 3}
   m_Name: DefaultGameRules
   m_EditorClassIdentifier: Daifugo.Runtime::Daifugo.Data.GameRulesSO
-  enableRevolution: 0
   enable8Cut: 1
   enableBind: 0
-  enableSpade3Return: 0
+  enableRevolution: 0
+  enable11Back: 1
+  enableSpade3Return: 1
+  enableForbiddenFinish: 1

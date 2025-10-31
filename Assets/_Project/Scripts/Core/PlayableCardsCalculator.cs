@@ -51,6 +51,17 @@ namespace Daifugo.Core
             if (card == null) return false;
             if (fieldState.IsEmpty) return true;
 
+            // スペ3返し：ジョーカー単体に対してスペード3を出せる（縛り無視）
+            // Phase 1: 複数枚出しがないため、CurrentCardがJokerであればJoker単体プレイと判定
+            if (gameRules.IsSpade3ReturnEnabled &&
+                fieldState.CurrentCard != null &&
+                fieldState.CurrentCard.IsJoker &&
+                card.CardSuit == CardSO.Suit.Spade &&
+                card.Rank == 3)
+            {
+                return true;
+            }
+
             // Phase 2: 縛りルールチェック
             if (fieldState.IsBindingActive(gameRules))
             {

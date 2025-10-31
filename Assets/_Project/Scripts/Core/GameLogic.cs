@@ -75,7 +75,7 @@ namespace Daifugo.Core
             hand.RemoveCard(card);
 
             // Check special rules
-            bool shouldResetField = CheckSpecialRules_8Cut(card);
+            bool shouldResetField = CheckSpecialRules_8Cut(card) || CheckSpecialRules_Spade3Return(card, currentFieldState);
             bool shouldActivate11Back = CheckSpecialRules_11Back(card);
 
             // Update field state with new card (apply 11-back if activated)
@@ -84,11 +84,16 @@ namespace Daifugo.Core
             // Check win condition
             bool isWin = hand.IsEmpty;
 
+            // Check forbidden finish (禁止上がり)
+            // If player finishes with forbidden card, they lose instead of winning
+            bool isForbiddenFinish = isWin && CheckForbiddenFinish(card);
+
             return CardPlayResult.Success(
                 newFieldState: newFieldState,
                 isWin: isWin,
                 shouldResetField: shouldResetField,
-                shouldActivate11Back: shouldActivate11Back
+                shouldActivate11Back: shouldActivate11Back,
+                isForbiddenFinish: isForbiddenFinish
             );
         }
 
@@ -123,6 +128,49 @@ namespace Daifugo.Core
 
             return false;
         }
+
+        /// <summary>
+        /// Checks if Spade 3 Return rule is activated
+        /// </summary>
+        /// <param name="card">Card that was played</param>
+        /// <param name="currentFieldState">Current field state before this card was played</param>
+        /// <returns>True if Spade 3 beats single Joker (field should reset), false otherwise</returns>
+        private bool CheckSpecialRules_Spade3Return(CardSO card, FieldState currentFieldState)
+        {
+            // Spade 3 Return: Spade 3 beats single Joker and clears the field
+            // Phase 1: 複数枚出しがないため、CurrentCardがJokerであればJoker単体プレイと判定
+            if (gameRules.IsSpade3ReturnEnabled &&
+                card.CardSuit == CardSO.Suit.Spade &&
+                card.Rank == 3 &&
+                currentFieldState.CurrentCard != null &&
+                currentFieldState.CurrentCard.IsJoker)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Checks if the card is a forbidden finish card (禁止上がり)
+        /// Forbidden cards: Joker, 2, 8, Spade 3
+        /// </summary>
+        /// <param name="card">Card that was played</param>
+        /// <returns>True if card is forbidden for finishing, false otherwise</returns>
+        private bool CheckForbiddenFinish(CardSO card)
+        {
+            if (!gameRules.IsForbiddenFinishEnabled) return false;
+
+            // Joker is always forbidden
+            if (card.IsJoker) return true;
+
+            // 2, 8, Spade 3 are forbidden (Phase 1: no revolution, so always these cards)
+            if (card.Rank == 2) return true;
+            if (card.Rank == 8) return true;
+            if (card.CardSuit == CardSO.Suit.Spade && card.Rank == 3) return true;
+
+            return false;
+        }
     }
 
     /// <summary>
@@ -151,6 +199,12 @@ namespace Daifugo.Core
         public bool ShouldActivate11Back { get; private set; }
 
         /// <summary>
+        /// Whether this is a forbidden finish (player loses instead of wins)
+        /// 禁止カード（ジョーカー、2、8、スペード3）で上がった場合、負けとなる
+        /// </summary>
+        public bool IsForbiddenFinish { get; private set; }
+
+        /// <summary>
         /// The new field state after the play (includes card history for binding detection)
         /// </summary>
         public FieldState NewFieldState { get; private set; }
@@ -162,13 +216,13 @@ namespace Daifugo.Core
 
         /// <summary>
         /// Turn advancement type based on the result
-        /// Derived property: GameEnd if win, SamePlayer if field reset, otherwise NextPlayer
+        /// Derived property: GameEnd if win or forbidden finish, SamePlayer if field reset, otherwise NextPlayer
         /// </summary>
         public TurnAdvanceType TurnAdvanceType
         {
             get
             {
-                if (IsWin) return TurnAdvanceType.GameEnd;
+                if (IsWin || IsForbiddenFinish) return TurnAdvanceType.GameEnd;
                 if (ShouldResetField) return TurnAdvanceType.SamePlayer;
                 return TurnAdvanceType.NextPlayer;
             }
@@ -177,7 +231,7 @@ namespace Daifugo.Core
         /// <summary>
         /// Creates a successful result
         /// </summary>
-        public static CardPlayResult Success(FieldState newFieldState, bool isWin, bool shouldResetField, bool shouldActivate11Back = false)
+        public static CardPlayResult Success(FieldState newFieldState, bool isWin, bool shouldResetField, bool shouldActivate11Back = false, bool isForbiddenFinish = false)
         {
             return new CardPlayResult
             {
@@ -185,6 +239,7 @@ namespace Daifugo.Core
                 IsWin = isWin,
                 ShouldResetField = shouldResetField,
                 ShouldActivate11Back = shouldActivate11Back,
+                IsForbiddenFinish = isForbiddenFinish,
                 NewFieldState = newFieldState,
                 ErrorMessage = null
             };
@@ -201,6 +256,7 @@ namespace Daifugo.Core
                 IsWin = false,
                 ShouldResetField = false,
                 ShouldActivate11Back = false,
+                IsForbiddenFinish = false,
                 NewFieldState = FieldState.Empty(),
                 ErrorMessage = errorMessage
             };

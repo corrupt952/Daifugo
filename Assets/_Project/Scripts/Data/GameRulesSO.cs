@@ -38,6 +38,9 @@ namespace Daifugo.Data
         [Tooltip("スペ3返しルールを有効にする（♠3でジョーカーを返せる）")]
         [SerializeField] private bool enableSpade3Return = false;
 
+        [Tooltip("禁止上がりルールを有効にする（ジョーカー、2、8、スペ3で上がると負け）")]
+        [SerializeField] private bool enableForbiddenFinish = false;
+
         // ========== Public Properties ==========
 
         /// <summary>革命ルールが有効か</summary>
@@ -54,6 +57,9 @@ namespace Daifugo.Data
 
         /// <summary>スペ3返しルールが有効か</summary>
         public bool IsSpade3ReturnEnabled => enableSpade3Return;
+
+        /// <summary>禁止上がりルールが有効か</summary>
+        public bool IsForbiddenFinishEnabled => enableForbiddenFinish;
 
         // ========== Public Methods (Runtime Modification) ==========
 
@@ -107,6 +113,16 @@ namespace Daifugo.Data
             enableSpade3Return = value;
         }
 
+        /// <summary>
+        /// 禁止上がりルールの有効/無効を設定
+        /// Runtime でルールを変更する場合に使用
+        /// </summary>
+        /// <param name="value">有効にする場合は true、無効にする場合は false</param>
+        public void SetForbiddenFinish(bool value)
+        {
+            enableForbiddenFinish = value;
+        }
+
         // ========== 将来追加予定のルール ==========
 
         // [Header("Additional Rules (未実装)")]
@@ -115,11 +131,5 @@ namespace Daifugo.Data
         //
         // [Tooltip("下克上ルールを有効にする")]
         // [SerializeField] private bool enableGekoJo = false;
-        //
-        // [Tooltip("イレブンバックルールを有効にする")]
-        // [SerializeField] private bool enable11Back = false;
-        //
-        // [Tooltip("禁止上がりルールを有効にする")]
-        // [SerializeField] private bool enableForbiddenFinish = false;
     }
 }

@@ -75,6 +75,7 @@ namespace Daifugo.Core
         /// <summary>
         /// 縛りが発動しているか判定
         /// 最後の2枚が同じスートの場合に縛り発動
+        /// ジョーカーは縛りに影響しない（スートを持たないカードとして扱う）
         /// </summary>
         /// <param name="rules">ゲームルール設定</param>
         /// <returns>縛りが発動している場合true</returns>
@@ -83,8 +84,14 @@ namespace Daifugo.Core
             if (!rules.IsBindEnabled) return false;
             if (CardsInField.Count < 2) return false;
 
+            CardSO lastCard = CardsInField[^1];
+            CardSO secondLastCard = CardsInField[^2];
+
+            // Jokerは縛りに影響しない
+            if (lastCard.IsJoker || secondLastCard.IsJoker) return false;
+
             // 最後の2枚が同じスートか
-            return CardsInField[^1].CardSuit == CardsInField[^2].CardSuit;
+            return lastCard.CardSuit == secondLastCard.CardSuit;
         }
 
         /// <summary>

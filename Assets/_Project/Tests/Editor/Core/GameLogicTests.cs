@@ -612,5 +612,261 @@ namespace Daifugo.Tests.Core
         }
 
         #endregion
+
+        #region Spade 3 Return Tests
+
+        /// <summary>
+        /// Test: Spade 3 on single Joker resets field (same as 8-cut)
+        /// NOTE: Hand must have other cards to avoid forbidden finish
+        /// </summary>
+        [Test]
+        public void PlayCard_Spade3OnSingleJoker_ResetsField()
+        {
+            // Arrange
+            CardSO joker = TestHelpers.CreateJoker(isRed: true);
+            CardSO spade3 = TestHelpers.CreateCard(CardSO.Suit.Spade, 3);
+            CardSO card5 = TestHelpers.CreateCardByRank(5);
+            PlayerHandSO hand = TestHelpers.CreateHand(0, spade3, card5); // Must have other cards
+            GameRulesSO rules = TestHelpers.CreateGameRules(enableSpade3Return: true);
+            GameLogic logic = new GameLogic(rules);
+
+            // Create field with single Joker
+            FieldState fieldWithJoker = FieldState.AddCard(FieldState.Empty(), joker);
+
+            // Act
+            CardPlayResult result = logic.PlayCard(spade3, hand, fieldWithJoker);
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess, "Spade 3 should successfully play on Joker");
+            Assert.IsTrue(result.ShouldResetField, "Spade 3 Return should reset the field");
+            Assert.AreEqual(TurnAdvanceType.SamePlayer, result.TurnAdvanceType, "Same player continues after field reset");
+        }
+
+        /// <summary>
+        /// Test: Spade 3 does not reset field when rule is disabled
+        /// </summary>
+        [Test]
+        public void PlayCard_Spade3OnJoker_RuleDisabled_FailsToPlay()
+        {
+            // Arrange
+            CardSO joker = TestHelpers.CreateJoker(isRed: true);
+            CardSO spade3 = TestHelpers.CreateCard(CardSO.Suit.Spade, 3);
+            PlayerHandSO hand = TestHelpers.CreateHand(0, spade3);
+            GameRulesSO rules = TestHelpers.CreateGameRules(enableSpade3Return: false);
+            GameLogic logic = new GameLogic(rules);
+
+            // Create field with single Joker
+            FieldState fieldWithJoker = FieldState.AddCard(FieldState.Empty(), joker);
+
+            // Act
+            CardPlayResult result = logic.PlayCard(spade3, hand, fieldWithJoker);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess, "Spade 3 cannot beat Joker when rule is disabled");
+            Assert.IsFalse(result.ShouldResetField, "Field should not reset");
+        }
+
+        /// <summary>
+        /// Test: Finishing with Joker triggers forbidden finish (player loses)
+        /// </summary>
+        [Test]
+        public void PlayCard_FinishWithJoker_IsForbiddenFinish()
+        {
+            // Arrange
+            CardSO joker = TestHelpers.CreateJoker(isRed: true);
+            PlayerHandSO hand = TestHelpers.CreateHand(0, joker); // Only Joker in hand
+            GameRulesSO rules = TestHelpers.CreateGameRules(enableForbiddenFinish: true);
+            GameLogic logic = new GameLogic(rules);
+
+            // Act
+            CardPlayResult result = logic.PlayCard(joker, hand, FieldState.Empty());
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess, "Card play succeeds");
+            Assert.IsTrue(result.IsWin, "Hand is empty (technical win)");
+            Assert.IsTrue(result.IsForbiddenFinish, "But it's a forbidden finish (player loses)");
+        }
+
+        /// <summary>
+        /// Test: Finishing with 2 triggers forbidden finish
+        /// </summary>
+        [Test]
+        public void PlayCard_FinishWith2_IsForbiddenFinish()
+        {
+            // Arrange
+            CardSO card2 = TestHelpers.CreateCardByRank(2);
+            PlayerHandSO hand = TestHelpers.CreateHand(0, card2);
+            GameRulesSO rules = TestHelpers.CreateGameRules(enableForbiddenFinish: true);
+            GameLogic logic = new GameLogic(rules);
+
+            // Act
+            CardPlayResult result = logic.PlayCard(card2, hand, FieldState.Empty());
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess, "Card play succeeds");
+            Assert.IsTrue(result.IsWin, "Hand is empty (technical win)");
+            Assert.IsTrue(result.IsForbiddenFinish, "But it's a forbidden finish (player loses)");
+        }
+
+        /// <summary>
+        /// Test: Finishing with 8 triggers forbidden finish
+        /// </summary>
+        [Test]
+        public void PlayCard_FinishWith8_IsForbiddenFinish()
+        {
+            // Arrange
+            CardSO card8 = TestHelpers.CreateCardByRank(8);
+            PlayerHandSO hand = TestHelpers.CreateHand(0, card8);
+            GameRulesSO rules = TestHelpers.CreateGameRules(enableForbiddenFinish: true);
+            GameLogic logic = new GameLogic(rules);
+
+            // Act
+            CardPlayResult result = logic.PlayCard(card8, hand, FieldState.Empty());
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess, "Card play succeeds");
+            Assert.IsTrue(result.IsWin, "Hand is empty (technical win)");
+            Assert.IsTrue(result.IsForbiddenFinish, "But it's a forbidden finish (player loses)");
+        }
+
+        /// <summary>
+        /// Test: Finishing with Spade 3 triggers forbidden finish
+        /// </summary>
+        [Test]
+        public void PlayCard_FinishWithSpade3_IsForbiddenFinish()
+        {
+            // Arrange
+            CardSO spade3 = TestHelpers.CreateCard(CardSO.Suit.Spade, 3);
+            PlayerHandSO hand = TestHelpers.CreateHand(0, spade3);
+            GameRulesSO rules = TestHelpers.CreateGameRules(enableForbiddenFinish: true);
+            GameLogic logic = new GameLogic(rules);
+
+            // Act
+            CardPlayResult result = logic.PlayCard(spade3, hand, FieldState.Empty());
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess, "Card play succeeds");
+            Assert.IsTrue(result.IsWin, "Hand is empty (technical win)");
+            Assert.IsTrue(result.IsForbiddenFinish, "But it's a forbidden finish (player loses)");
+        }
+
+        /// <summary>
+        /// Test: Finishing with normal card does not trigger forbidden finish
+        /// </summary>
+        [Test]
+        public void PlayCard_FinishWithNormalCard_NotForbiddenFinish()
+        {
+            // Arrange
+            CardSO card5 = TestHelpers.CreateCardByRank(5);
+            PlayerHandSO hand = TestHelpers.CreateHand(0, card5);
+            GameRulesSO rules = TestHelpers.CreateGameRules(enableForbiddenFinish: true);
+            GameLogic logic = new GameLogic(rules);
+
+            // Act
+            CardPlayResult result = logic.PlayCard(card5, hand, FieldState.Empty());
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess, "Card play succeeds");
+            Assert.IsTrue(result.IsWin, "Hand is empty (player wins)");
+            Assert.IsFalse(result.IsForbiddenFinish, "Not a forbidden finish");
+        }
+
+        /// <summary>
+        /// Test: Forbidden finish disabled - finishing with Joker is allowed
+        /// </summary>
+        [Test]
+        public void PlayCard_ForbiddenFinishDisabled_JokerAllowed()
+        {
+            // Arrange
+            CardSO joker = TestHelpers.CreateJoker(isRed: true);
+            PlayerHandSO hand = TestHelpers.CreateHand(0, joker);
+            GameRulesSO rules = TestHelpers.CreateGameRules(enableForbiddenFinish: false);
+            GameLogic logic = new GameLogic(rules);
+
+            // Act
+            CardPlayResult result = logic.PlayCard(joker, hand, FieldState.Empty());
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess, "Card play succeeds");
+            Assert.IsTrue(result.IsWin, "Hand is empty (player wins)");
+            Assert.IsFalse(result.IsForbiddenFinish, "Forbidden finish rule is disabled");
+        }
+
+        /// <summary>
+        /// Test: Can play Spade 3 when it's not the last card
+        /// </summary>
+        [Test]
+        public void PlayCard_Spade3NotLastCard_Succeeds()
+        {
+            // Arrange
+            CardSO spade3 = TestHelpers.CreateCard(CardSO.Suit.Spade, 3);
+            CardSO card5 = TestHelpers.CreateCardByRank(5);
+            PlayerHandSO hand = TestHelpers.CreateHand(0, spade3, card5); // Spade 3 + another card
+            GameRulesSO rules = TestHelpers.CreateGameRules(enableSpade3Return: true);
+            GameLogic logic = new GameLogic(rules);
+
+            // Act - Play Spade 3 (not last card)
+            CardPlayResult result = logic.PlayCard(spade3, hand, FieldState.Empty());
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess, "Can play Spade 3 when it's not the last card");
+            Assert.IsFalse(result.IsWin, "Should not win (still have card 5)");
+        }
+
+        /// <summary>
+        /// Test: Spade 3 Return activates even when binding is active
+        /// NOTE: Hand must have other cards to avoid forbidden finish
+        /// </summary>
+        [Test]
+        public void PlayCard_Spade3OnJoker_IgnoresBinding()
+        {
+            // Arrange
+            CardSO heartCard = TestHelpers.CreateCard(CardSO.Suit.Heart, 5);
+            CardSO heartCard2 = TestHelpers.CreateCard(CardSO.Suit.Heart, 7);
+            CardSO joker = TestHelpers.CreateJoker(isRed: true);
+            CardSO spade3 = TestHelpers.CreateCard(CardSO.Suit.Spade, 3);
+            CardSO card6 = TestHelpers.CreateCardByRank(6);
+            PlayerHandSO hand = TestHelpers.CreateHand(0, spade3, card6); // Must have other cards
+            GameRulesSO rules = TestHelpers.CreateGameRules(enableBind: true, enableSpade3Return: true);
+            GameLogic logic = new GameLogic(rules);
+
+            // Create field with Hearts binding, then Joker
+            FieldState state = FieldState.AddCard(FieldState.Empty(), heartCard);
+            state = FieldState.AddCard(state, heartCard2);
+            state = FieldState.AddCard(state, joker); // Joker breaks binding, but binding history remains
+
+            // Act
+            CardPlayResult result = logic.PlayCard(spade3, hand, state);
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess, "Spade 3 should beat Joker even with binding active");
+            Assert.IsTrue(result.ShouldResetField, "Field should reset");
+        }
+
+        /// <summary>
+        /// Test: Spade 3 on non-Joker follows normal rules
+        /// </summary>
+        [Test]
+        public void PlayCard_Spade3OnNormalCard_FollowsNormalRules()
+        {
+            // Arrange
+            CardSO card5 = TestHelpers.CreateCardByRank(5);
+            CardSO spade3 = TestHelpers.CreateCard(CardSO.Suit.Spade, 3);
+            PlayerHandSO hand = TestHelpers.CreateHand(0, spade3);
+            GameRulesSO rules = TestHelpers.CreateGameRules(enableSpade3Return: true);
+            GameLogic logic = new GameLogic(rules);
+
+            // Create field with normal card (5)
+            FieldState fieldWith5 = FieldState.AddCard(FieldState.Empty(), card5);
+
+            // Act
+            CardPlayResult result = logic.PlayCard(spade3, hand, fieldWith5);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess, "Spade 3 cannot beat 5 normally (3 < 5)");
+            Assert.IsFalse(result.ShouldResetField, "Field should not reset for normal play failure");
+        }
+
+        #endregion
     }
 }

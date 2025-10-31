@@ -642,5 +642,149 @@ namespace Daifugo.Tests.Core
         }
 
         #endregion
+
+        #region Spade 3 Return Tests
+
+        /// <summary>
+        /// Test: Spade 3 can beat single Joker when rule is enabled
+        /// </summary>
+        [Test]
+        public void CanPlayCard_Spade3OnSingleJoker_ReturnsTrue()
+        {
+            // Arrange
+            CardSO joker = TestHelpers.CreateJoker(isRed: true);
+            CardSO spade3 = TestHelpers.CreateCard(CardSO.Suit.Spade, 3);
+            GameRulesSO rules = TestHelpers.CreateGameRules(enableSpade3Return: true);
+
+            // Create field with single Joker
+            FieldState state = FieldState.AddCard(FieldState.Empty(), joker);
+
+            // Act
+            bool canPlay = calculator.CanPlayCard(spade3, state, rules);
+
+            // Assert
+            Assert.IsTrue(canPlay, "Spade 3 should beat single Joker when rule is enabled");
+        }
+
+        /// <summary>
+        /// Test: Spade 3 cannot beat Joker when rule is disabled
+        /// </summary>
+        [Test]
+        public void CanPlayCard_Spade3OnJoker_RuleDisabled_ReturnsFalse()
+        {
+            // Arrange
+            CardSO joker = TestHelpers.CreateJoker(isRed: true);
+            CardSO spade3 = TestHelpers.CreateCard(CardSO.Suit.Spade, 3);
+            GameRulesSO rules = TestHelpers.CreateGameRules(enableSpade3Return: false);
+
+            // Create field with single Joker
+            FieldState state = FieldState.AddCard(FieldState.Empty(), joker);
+
+            // Act
+            bool canPlay = calculator.CanPlayCard(spade3, state, rules);
+
+            // Assert
+            Assert.IsFalse(canPlay, "Spade 3 cannot beat Joker when rule is disabled (3 < 16)");
+        }
+
+        /// <summary>
+        /// Test: Non-Spade 3 cards cannot beat Joker
+        /// </summary>
+        [Test]
+        public void CanPlayCard_NonSpade3OnJoker_ReturnsFalse()
+        {
+            // Arrange
+            CardSO joker = TestHelpers.CreateJoker(isRed: true);
+            CardSO heart3 = TestHelpers.CreateCard(CardSO.Suit.Heart, 3);
+            CardSO spade4 = TestHelpers.CreateCard(CardSO.Suit.Spade, 4);
+            GameRulesSO rules = TestHelpers.CreateGameRules(enableSpade3Return: true);
+
+            // Create field with single Joker
+            FieldState state = FieldState.AddCard(FieldState.Empty(), joker);
+
+            // Act
+            bool canPlayHeart3 = calculator.CanPlayCard(heart3, state, rules);
+            bool canPlaySpade4 = calculator.CanPlayCard(spade4, state, rules);
+
+            // Assert
+            Assert.IsFalse(canPlayHeart3, "Heart 3 cannot beat Joker (only Spade 3)");
+            Assert.IsFalse(canPlaySpade4, "Spade 4 cannot beat Joker (only Spade 3)");
+        }
+
+        /// <summary>
+        /// Test: Spade 3 ignores binding when beating Joker
+        /// </summary>
+        [Test]
+        public void CanPlayCard_Spade3OnJoker_IgnoresBinding()
+        {
+            // Arrange
+            CardSO heartCard = TestHelpers.CreateCard(CardSO.Suit.Heart, 5);
+            CardSO heartCard2 = TestHelpers.CreateCard(CardSO.Suit.Heart, 7);
+            CardSO joker = TestHelpers.CreateJoker(isRed: true);
+            CardSO spade3 = TestHelpers.CreateCard(CardSO.Suit.Spade, 3);
+            GameRulesSO rules = TestHelpers.CreateGameRules(enableBind: true, enableSpade3Return: true);
+
+            // Create field with Hearts binding (2 Hearts in a row), then Joker
+            FieldState state = FieldState.AddCard(FieldState.Empty(), heartCard);
+            state = FieldState.AddCard(state, heartCard2);
+            state = FieldState.AddCard(state, joker); // Joker on top, but binding still active
+
+            // Act
+            bool canPlay = calculator.CanPlayCard(spade3, state, rules);
+
+            // Assert
+            Assert.IsTrue(canPlay, "Spade 3 should ignore binding when beating Joker");
+        }
+
+        /// <summary>
+        /// Test: Spade 3 can beat Joker even when multiple cards were played sequentially
+        /// Phase 1: 1枚ずつプレイするため、CurrentCardがJokerならスペ3返し適用
+        /// Phase 2実装時: 複数枚同時出しの場合は別途判定が必要
+        /// </summary>
+        [Test]
+        public void CanPlayCard_Spade3OnJokerAfterMultipleCards_ReturnsTrue()
+        {
+            // Arrange
+            CardSO joker1 = TestHelpers.CreateJoker(isRed: true);
+            CardSO joker2 = TestHelpers.CreateJoker(isRed: false);
+            CardSO spade3 = TestHelpers.CreateCard(CardSO.Suit.Spade, 3);
+            GameRulesSO rules = TestHelpers.CreateGameRules(enableSpade3Return: true);
+
+            // Create field with sequential plays: Joker1, then Joker2
+            // Phase 1: Each play is single card, so CurrentCard=Joker2 triggers Spade 3 Return
+            FieldState state = FieldState.AddCard(FieldState.Empty(), joker1);
+            state = FieldState.AddCard(state, joker2);
+
+            // Act
+            bool canPlay = calculator.CanPlayCard(spade3, state, rules);
+
+            // Assert
+            Assert.IsTrue(canPlay, "Phase 1: Spade 3 can beat Joker (CurrentCard=Joker2)");
+        }
+
+        /// <summary>
+        /// Test: Spade 3 Return only applies when last card is Joker
+        /// </summary>
+        [Test]
+        public void CanPlayCard_Spade3_OnlyAppliesWhenTopCardIsJoker()
+        {
+            // Arrange
+            CardSO joker = TestHelpers.CreateJoker(isRed: true);
+            CardSO card5 = TestHelpers.CreateCardByRank(5);
+            CardSO spade3 = TestHelpers.CreateCard(CardSO.Suit.Spade, 3);
+            GameRulesSO rules = TestHelpers.CreateGameRules(enableSpade3Return: true);
+
+            // Create field with Joker, then 5 on top (so top is not Joker)
+            // NOTE: In real game, you can't play 5 on Joker, but this is for testing logic
+            FieldState state = FieldState.AddCard(FieldState.Empty(), card5);
+
+            // Act
+            bool canPlay = calculator.CanPlayCard(spade3, state, rules);
+
+            // Assert
+            Assert.IsFalse(canPlay, "Spade 3 Return only applies when field has single Joker (3 < 5)");
+        }
+
+        #endregion
     }
 }
