@@ -19,27 +19,32 @@ namespace Daifugo.Data
     [CreateAssetMenu(fileName = "GameRules", menuName = "Daifugo/Data/GameRules")]
     public class GameRulesSO : ScriptableObject
     {
-        // ========== Basic Rules ==========
+        // ========== Basic Rules (日本大富豪連盟 五大公式ルール) ==========
 
-        [Header("Basic Rules")]
+        [Header("Basic Rules (日本大富豪連盟 五大公式ルール)")]
         [Tooltip("8切りルールを有効にする（8で場が流れる）")]
         [SerializeField] private bool enable8Cut = true;
 
         [Tooltip("縛りルールを有効にする（同じスート連続でスート固定）")]
         [SerializeField] private bool enableBind = true;
 
-        [Header("Advanced Rules (未実装)")]
-        [Tooltip("革命ルールを有効にする（4枚出しで強さ逆転）")]
-        [SerializeField] private bool enableRevolution = false;
-
-        [Tooltip("11バックルールを有効にする（Jで一時的に強さ逆転）")]
-        [SerializeField] private bool enable11Back = false;
-
         [Tooltip("スペ3返しルールを有効にする（♠3でジョーカーを返せる）")]
         [SerializeField] private bool enableSpade3Return = false;
 
+        // ========== Special Rules (ローカルルール) ==========
+
+        [Header("Special Rules (ローカルルール)")]
+        [Tooltip("11バックルールを有効にする（Jで一時的に強さ逆転）")]
+        [SerializeField] private bool enable11Back = false;
+
         [Tooltip("禁止上がりルールを有効にする（ジョーカー、2、8、スペ3で上がると負け）")]
         [SerializeField] private bool enableForbiddenFinish = false;
+
+        // ========== Advanced Rules (Phase 2以降で実装予定) ==========
+
+        [Header("Advanced Rules (Phase 2以降で実装予定)")]
+        [Tooltip("革命ルールを有効にする（4枚出しで強さ逆転）")]
+        [SerializeField] private bool enableRevolution = false;
 
         // ========== Public Properties ==========
 
