@@ -403,5 +403,244 @@ namespace Daifugo.Tests.Core
         }
 
         #endregion
+
+        #region 11-Back (Temporary Revolution) Tests
+
+        /// <summary>
+        /// Test: During 11-back (temporary revolution), weak cards can beat strong cards
+        /// </summary>
+        [Test]
+        public void CanPlayCard_During11Back_WeakCardBeatsStrong()
+        {
+            // Arrange
+            CardSO card5 = TestHelpers.CreateCardByRank(5); // Weak card
+            CardSO card10 = TestHelpers.CreateCardByRank(10); // Strong card
+            GameRulesSO rules = TestHelpers.CreateGameRules(enable11Back: true);
+
+            // Create field with J (activates 11-back)
+            CardSO cardJ = TestHelpers.CreateCardByRank(11);
+            FieldState state = FieldState.AddCard(FieldState.Empty(), cardJ, activates11Back: true);
+            // Then add card10
+            state = FieldState.AddCard(state, card10);
+
+            // Act - Try to play weaker card (5)
+            bool canPlay = calculator.CanPlayCard(card5, state, rules);
+
+            // Assert
+            Assert.IsTrue(canPlay, "During 11-back, 5 should beat 10 (strength reversed)");
+            Assert.IsTrue(state.IsTemporaryRevolution, "Field should have temporary revolution");
+        }
+
+        /// <summary>
+        /// Test: During 11-back, strong cards cannot beat weak cards
+        /// </summary>
+        [Test]
+        public void CanPlayCard_During11Back_StrongCardCannotBeatWeak()
+        {
+            // Arrange
+            CardSO card3 = TestHelpers.CreateCardByRank(3); // Very weak card
+            CardSO cardK = TestHelpers.CreateCardByRank(13); // King (strong normally)
+            GameRulesSO rules = TestHelpers.CreateGameRules(enable11Back: true);
+
+            // Create field with J (activates 11-back)
+            CardSO cardJ = TestHelpers.CreateCardByRank(11);
+            FieldState state = FieldState.AddCard(FieldState.Empty(), cardJ, activates11Back: true);
+            // Then add weak card (3)
+            state = FieldState.AddCard(state, card3);
+
+            // Act - Try to play strong card (K)
+            bool canPlay = calculator.CanPlayCard(cardK, state, rules);
+
+            // Assert
+            Assert.IsFalse(canPlay, "During 11-back, K cannot beat 3 (strength reversed)");
+        }
+
+        /// <summary>
+        /// Test: Without 11-back, normal strength comparison applies
+        /// </summary>
+        [Test]
+        public void CanPlayCard_No11Back_NormalStrengthComparison()
+        {
+            // Arrange
+            CardSO card5 = TestHelpers.CreateCardByRank(5);
+            CardSO card10 = TestHelpers.CreateCardByRank(10);
+            GameRulesSO rules = TestHelpers.CreateGameRules(enable11Back: false);
+
+            FieldState state = FieldState.AddCard(FieldState.Empty(), card5);
+
+            // Act - Try to play stronger card
+            bool canPlay = calculator.CanPlayCard(card10, state, rules);
+
+            // Assert
+            Assert.IsTrue(canPlay, "Without 11-back, normal strength: 10 beats 5");
+            Assert.IsFalse(state.IsTemporaryRevolution, "No temporary revolution");
+        }
+
+        /// <summary>
+        /// Test: After field reset, 11-back revolution is cleared
+        /// </summary>
+        [Test]
+        public void CanPlayCard_AfterFieldReset_RevolutionCleared()
+        {
+            // Arrange
+            CardSO card5 = TestHelpers.CreateCardByRank(5);
+            CardSO card10 = TestHelpers.CreateCardByRank(10);
+            CardSO cardJ = TestHelpers.CreateCardByRank(11);
+            GameRulesSO rules = TestHelpers.CreateGameRules(enable11Back: true);
+
+            // Create field with J (activates 11-back)
+            FieldState state = FieldState.AddCard(FieldState.Empty(), cardJ, activates11Back: true);
+            Assert.IsTrue(state.IsTemporaryRevolution, "Revolution should be active");
+
+            // Field reset (simulating field clear after all players pass)
+            FieldState clearedState = FieldState.Empty();
+
+            // Add card5 to cleared field
+            clearedState = FieldState.AddCard(clearedState, card5);
+
+            // Act - Try to play card10 (should work with normal strength)
+            bool canPlay = calculator.CanPlayCard(card10, clearedState, rules);
+
+            // Assert
+            Assert.IsTrue(canPlay, "After field reset, normal strength: 10 beats 5");
+            Assert.IsFalse(clearedState.IsTemporaryRevolution, "Field reset clears revolution");
+        }
+
+        /// <summary>
+        /// Test: GetPlayableCards returns correct cards during 11-back
+        /// </summary>
+        [Test]
+        public void GetPlayableCards_During11Back_ReturnsWeakerCards()
+        {
+            // Arrange
+            CardSO card3 = TestHelpers.CreateCardByRank(3);
+            CardSO card5 = TestHelpers.CreateCardByRank(5);
+            CardSO card10 = TestHelpers.CreateCardByRank(10);
+            CardSO cardJ = TestHelpers.CreateCardByRank(11);
+            GameRulesSO rules = TestHelpers.CreateGameRules(enable11Back: true);
+
+            var hand = TestHelpers.CreateHand(0, card3, card5, card10);
+
+            // Create field with J (activates 11-back) and card10 on top
+            FieldState state = FieldState.AddCard(FieldState.Empty(), cardJ, activates11Back: true);
+            state = FieldState.AddCard(state, card10); // Current card: 10 (strength 10)
+
+            // Act
+            var playableCards = calculator.GetPlayableCards(hand, state, rules);
+
+            // Assert
+            Assert.AreEqual(2, playableCards.Count, "During 11-back, 3 and 5 should be playable (weaker than 10)");
+            Assert.Contains(card3, playableCards, "Card 3 should be playable");
+            Assert.Contains(card5, playableCards, "Card 5 should be playable");
+            Assert.IsFalse(playableCards.Contains(card10), "Card 10 cannot play on itself");
+        }
+
+        /// <summary>
+        /// Test: 11-back disabled, normal playable cards calculation
+        /// </summary>
+        [Test]
+        public void GetPlayableCards_11BackDisabled_NormalCalculation()
+        {
+            // Arrange
+            CardSO card3 = TestHelpers.CreateCardByRank(3);
+            CardSO card5 = TestHelpers.CreateCardByRank(5);
+            CardSO card10 = TestHelpers.CreateCardByRank(10);
+            CardSO cardJ = TestHelpers.CreateCardByRank(11);
+            GameRulesSO rules = TestHelpers.CreateGameRules(enable11Back: false);
+
+            var hand = TestHelpers.CreateHand(0, card3, card10);
+
+            // Create field with J (but 11-back is disabled)
+            FieldState state = FieldState.AddCard(FieldState.Empty(), cardJ);
+            state = FieldState.AddCard(state, card5); // Current card: 5 (strength 5)
+
+            // Act
+            var playableCards = calculator.GetPlayableCards(hand, state, rules);
+
+            // Assert
+            Assert.AreEqual(1, playableCards.Count, "Only stronger cards should be playable");
+            Assert.Contains(card10, playableCards, "Card 10 beats 5 (normal)");
+            Assert.IsFalse(playableCards.Contains(card3), "Card 3 cannot beat 5 (normal)");
+        }
+
+        /// <summary>
+        /// Test: During 11-back on empty field, all cards are still playable
+        /// </summary>
+        [Test]
+        public void CanPlayCard_11BackWithEmptyField_AllPlayable()
+        {
+            // Arrange
+            CardSO card3 = TestHelpers.CreateCardByRank(3);
+            GameRulesSO rules = TestHelpers.CreateGameRules(enable11Back: true);
+
+            // Create field with J, then reset (simulating field reset after 11-back)
+            CardSO cardJ = TestHelpers.CreateCardByRank(11);
+            FieldState state = FieldState.AddCard(FieldState.Empty(), cardJ, activates11Back: true);
+            // Field is reset (but revolution state should persist until field actually clears)
+            // In this test, we're testing Empty() which should clear revolution
+            FieldState emptyState = FieldState.Empty();
+
+            // Act
+            bool canPlay = calculator.CanPlayCard(card3, emptyState, rules);
+
+            // Assert
+            Assert.IsTrue(canPlay, "On empty field, all cards are playable");
+            Assert.IsFalse(emptyState.IsTemporaryRevolution, "Empty field clears revolution");
+        }
+
+        /// <summary>
+        /// Test: Ace (1) and Two (2) strength is also reversed during 11-back
+        /// </summary>
+        [Test]
+        public void CanPlayCard_During11Back_AceAndTwoReversed()
+        {
+            // Arrange
+            CardSO card3 = TestHelpers.CreateCardByRank(3); // Strength: 3
+            CardSO ace = TestHelpers.CreateCardByRank(1);   // Strength: 14 (normally strongest)
+            CardSO two = TestHelpers.CreateCardByRank(2);   // Strength: 15 (normally strongest)
+            CardSO cardJ = TestHelpers.CreateCardByRank(11);
+            GameRulesSO rules = TestHelpers.CreateGameRules(enable11Back: true);
+
+            // Create field with J (activates 11-back) and Two on top
+            FieldState state = FieldState.AddCard(FieldState.Empty(), cardJ, activates11Back: true);
+            state = FieldState.AddCard(state, two); // Current: Two (strength 15, highest)
+
+            // Act - Try to play weak card (3)
+            bool canPlay3 = calculator.CanPlayCard(card3, state, rules);
+            bool canPlayAce = calculator.CanPlayCard(ace, state, rules);
+
+            // Assert
+            Assert.IsTrue(canPlay3, "During 11-back, 3 beats 2 (reversed)");
+            Assert.IsTrue(canPlayAce, "During 11-back, Ace beats 2 (reversed, but still higher than 3)");
+        }
+
+        /// <summary>
+        /// Test: During 11-back, J follows reversed strength rules (hard to play)
+        /// </summary>
+        [Test]
+        public void CanPlayCard_During11Back_JFollowsReversedRules()
+        {
+            // Arrange
+            CardSO cardJ1 = TestHelpers.CreateCardByRank(11); // Strength: 11
+            CardSO cardJ2 = TestHelpers.CreateCardByRank(11); // Strength: 11
+            CardSO card3 = TestHelpers.CreateCardByRank(3);   // Strength: 3
+            GameRulesSO rules = TestHelpers.CreateGameRules(enable11Back: true);
+
+            // Create field with first J (activates 11-back)
+            FieldState state = FieldState.AddCard(FieldState.Empty(), cardJ1, activates11Back: true);
+
+            // Act - Try to play second J during 11-back (11 < 11? No!)
+            bool canPlayJ = calculator.CanPlayCard(cardJ2, state, rules);
+
+            // Try to play weak card (3 < 11? Yes!)
+            bool canPlay3 = calculator.CanPlayCard(card3, state, rules);
+
+            // Assert
+            Assert.IsFalse(canPlayJ, "J cannot play on J during 11-back (11 < 11 is false)");
+            Assert.IsTrue(canPlay3, "Weak card (3) can play on J during 11-back (3 < 11)");
+            Assert.IsTrue(state.IsTemporaryRevolution, "Revolution should be active");
+        }
+
+        #endregion
     }
 }

@@ -18,14 +18,21 @@ namespace Daifugo.Core
         /// </summary>
         public readonly IReadOnlyList<CardSO> CardsInField;
 
+        /// <summary>
+        /// 一時革命が発動中か（11バックによる一時的な強さ逆転）
+        /// 場が流れるまで継続する
+        /// </summary>
+        public readonly bool IsTemporaryRevolution;
+
         // ========== Private Constructor ==========
 
         /// <summary>
         /// プライベートコンストラクタ（Factory Methodから呼び出し）
         /// </summary>
-        private FieldState(IReadOnlyList<CardSO> cards)
+        private FieldState(IReadOnlyList<CardSO> cards, bool isTemporaryRevolution)
         {
             CardsInField = cards ?? new List<CardSO>();
+            IsTemporaryRevolution = isTemporaryRevolution;
         }
 
         // ========== Derived Properties ==========
@@ -44,18 +51,23 @@ namespace Daifugo.Core
         /// <summary>
         /// 空の場を生成
         /// </summary>
-        public static FieldState Empty() => new FieldState(new List<CardSO>());
+        public static FieldState Empty() => new FieldState(new List<CardSO>(), isTemporaryRevolution: false);
 
         /// <summary>
         /// 場にカードを追加（イミュータブル：新しいFieldStateを返す）
         /// </summary>
         /// <param name="current">現在の場の状態</param>
         /// <param name="card">追加するカード</param>
+        /// <param name="activates11Back">11バックルールが発動するか</param>
         /// <returns>カードが追加された新しい場の状態</returns>
-        public static FieldState AddCard(FieldState current, CardSO card)
+        public static FieldState AddCard(FieldState current, CardSO card, bool activates11Back = false)
         {
             var newList = new List<CardSO>(current.CardsInField) { card };
-            return new FieldState(newList);
+
+            // 11バック発動時は一時革命状態を反転
+            bool newRevolutionState = activates11Back ? !current.IsTemporaryRevolution : current.IsTemporaryRevolution;
+
+            return new FieldState(newList, newRevolutionState);
         }
 
         // ========== Phase 2: 縛りルール ==========

@@ -61,12 +61,15 @@ namespace Daifugo.Core
                 }
             }
 
-            // 基本的な強度比較
-            return card.GetStrength() > fieldState.Strength;
+            // 強度比較：11バック（一時革命）中は強さが逆転
+            if (gameRules.Is11BackEnabled && fieldState.IsTemporaryRevolution)
+            {
+                // 11バック中：弱いカードが強いカードに勝つ
+                return card.GetStrength() < fieldState.Strength;
+            }
 
-            // Phase 2以降: 革命などのルール判定を追加予定
-            // if (gameRules.IsRevolutionEnabled && fieldState.IsRevolutionActive)
-            //     return card.GetStrength() < fieldState.Strength;
+            // 通常の強度比較：強いカードが弱いカードに勝つ
+            return card.GetStrength() > fieldState.Strength;
         }
 
         /// <summary>

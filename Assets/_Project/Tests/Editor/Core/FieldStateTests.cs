@@ -265,6 +265,124 @@ namespace Daifugo.Tests.Core
 
         #endregion
 
+        #region 11-Back (Temporary Revolution) Tests
+
+        /// <summary>
+        /// Test: Empty field has no temporary revolution
+        /// </summary>
+        [Test]
+        public void Empty_NoTemporaryRevolution()
+        {
+            // Act
+            FieldState state = FieldState.Empty();
+
+            // Assert
+            Assert.IsFalse(state.IsTemporaryRevolution, "Empty field should not have temporary revolution");
+        }
+
+        /// <summary>
+        /// Test: Adding card with 11-back activates temporary revolution
+        /// </summary>
+        [Test]
+        public void AddCard_With11Back_ActivatesTemporaryRevolution()
+        {
+            // Arrange
+            CardSO card = TestHelpers.CreateCardByRank(11); // J
+            FieldState empty = FieldState.Empty();
+
+            // Act
+            FieldState state = FieldState.AddCard(empty, card, activates11Back: true);
+
+            // Assert
+            Assert.IsTrue(state.IsTemporaryRevolution, "11-back should activate temporary revolution");
+            Assert.IsFalse(empty.IsTemporaryRevolution, "Original state should remain unchanged");
+        }
+
+        /// <summary>
+        /// Test: Adding card without 11-back maintains revolution state
+        /// </summary>
+        [Test]
+        public void AddCard_Without11Back_MaintainsRevolutionState()
+        {
+            // Arrange
+            CardSO cardJ = TestHelpers.CreateCardByRank(11);
+            CardSO cardNormal = TestHelpers.CreateCardByRank(5);
+            FieldState empty = FieldState.Empty();
+
+            // Act - First activate 11-back
+            FieldState state1 = FieldState.AddCard(empty, cardJ, activates11Back: true);
+            // Then add normal card
+            FieldState state2 = FieldState.AddCard(state1, cardNormal, activates11Back: false);
+
+            // Assert
+            Assert.IsTrue(state1.IsTemporaryRevolution, "State1 should have revolution");
+            Assert.IsTrue(state2.IsTemporaryRevolution, "State2 should maintain revolution");
+        }
+
+        /// <summary>
+        /// Test: Second 11-back deactivates temporary revolution
+        /// </summary>
+        [Test]
+        public void AddCard_Second11Back_DeactivatesTemporaryRevolution()
+        {
+            // Arrange
+            CardSO cardJ1 = TestHelpers.CreateCardByRank(11);
+            CardSO cardJ2 = TestHelpers.CreateCardByRank(11);
+            FieldState empty = FieldState.Empty();
+
+            // Act - First 11-back
+            FieldState state1 = FieldState.AddCard(empty, cardJ1, activates11Back: true);
+            // Second 11-back
+            FieldState state2 = FieldState.AddCard(state1, cardJ2, activates11Back: true);
+
+            // Assert
+            Assert.IsFalse(empty.IsTemporaryRevolution, "Empty should have no revolution");
+            Assert.IsTrue(state1.IsTemporaryRevolution, "First 11-back should activate");
+            Assert.IsFalse(state2.IsTemporaryRevolution, "Second 11-back should deactivate");
+        }
+
+        /// <summary>
+        /// Test: Empty clears temporary revolution
+        /// </summary>
+        [Test]
+        public void Empty_ClearsTemporaryRevolution()
+        {
+            // Arrange
+            CardSO cardJ = TestHelpers.CreateCardByRank(11);
+            FieldState state = FieldState.AddCard(FieldState.Empty(), cardJ, activates11Back: true);
+
+            // Act
+            FieldState cleared = FieldState.Empty();
+
+            // Assert
+            Assert.IsTrue(state.IsTemporaryRevolution, "State should have revolution");
+            Assert.IsFalse(cleared.IsTemporaryRevolution, "Cleared state should not have revolution");
+        }
+
+        /// <summary>
+        /// Test: Third 11-back reactivates temporary revolution
+        /// </summary>
+        [Test]
+        public void AddCard_Third11Back_ReactivatesTemporaryRevolution()
+        {
+            // Arrange
+            CardSO cardJ1 = TestHelpers.CreateCardByRank(11);
+            CardSO cardJ2 = TestHelpers.CreateCardByRank(11);
+            CardSO cardJ3 = TestHelpers.CreateCardByRank(11);
+
+            // Act
+            FieldState state1 = FieldState.AddCard(FieldState.Empty(), cardJ1, activates11Back: true);
+            FieldState state2 = FieldState.AddCard(state1, cardJ2, activates11Back: true);
+            FieldState state3 = FieldState.AddCard(state2, cardJ3, activates11Back: true);
+
+            // Assert
+            Assert.IsTrue(state1.IsTemporaryRevolution, "First 11-back: revolution ON");
+            Assert.IsFalse(state2.IsTemporaryRevolution, "Second 11-back: revolution OFF");
+            Assert.IsTrue(state3.IsTemporaryRevolution, "Third 11-back: revolution ON again");
+        }
+
+        #endregion
+
         #region Edge Cases
 
         /// <summary>

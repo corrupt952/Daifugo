@@ -72,12 +72,14 @@ namespace Daifugo.Tests.Helpers
         /// <param name="enableRevolution">革命ルールを有効にするか</param>
         /// <param name="enable8Cut">8切りルールを有効にするか</param>
         /// <param name="enableBind">縛りルールを有効にするか</param>
+        /// <param name="enable11Back">11バックルールを有効にするか</param>
         /// <param name="enableSpade3Return">スペ3返しルールを有効にするか</param>
         /// <returns>GameRulesSO instance</returns>
         public static GameRulesSO CreateGameRules(
             bool enableRevolution = false,
             bool enable8Cut = true,
             bool enableBind = false,
+            bool enable11Back = false,
             bool enableSpade3Return = false)
         {
             var rules = ScriptableObject.CreateInstance<GameRulesSO>();
@@ -86,11 +88,13 @@ namespace Daifugo.Tests.Helpers
             var revolutionField = typeof(GameRulesSO).GetField("enableRevolution", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             var cut8Field = typeof(GameRulesSO).GetField("enable8Cut", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             var bindField = typeof(GameRulesSO).GetField("enableBind", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var back11Field = typeof(GameRulesSO).GetField("enable11Back", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             var spade3ReturnField = typeof(GameRulesSO).GetField("enableSpade3Return", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
 
             revolutionField?.SetValue(rules, enableRevolution);
             cut8Field?.SetValue(rules, enable8Cut);
             bindField?.SetValue(rules, enableBind);
+            back11Field?.SetValue(rules, enable11Back);
             spade3ReturnField?.SetValue(rules, enableSpade3Return);
 
             return rules;

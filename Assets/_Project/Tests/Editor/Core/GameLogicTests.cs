@@ -231,6 +231,167 @@ namespace Daifugo.Tests.Core
 
         #endregion
 
+        #region 11-Back (Temporary Revolution) Special Rule Tests
+
+        /// <summary>
+        /// Test: Playing J should activate 11-back rule
+        /// </summary>
+        [Test]
+        public void PlayCard_WithJ_Activates11Back()
+        {
+            // Arrange
+            gameRules = TestHelpers.CreateGameRules(enable11Back: true);
+            gameLogic = new GameLogic(gameRules);
+
+            CardSO cardJ = TestHelpers.CreateCardByRank(11); // J
+            CardSO card2 = TestHelpers.CreateCardByRank(5);
+            PlayerHandSO hand = TestHelpers.CreateHand(0, cardJ, card2);
+
+            // Act
+            CardPlayResult result = gameLogic.PlayCard(cardJ, hand, FieldState.Empty());
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess, "J card play should succeed");
+            Assert.IsTrue(result.ShouldActivate11Back, "J should activate 11-back rule");
+            Assert.IsTrue(result.NewFieldState.IsTemporaryRevolution, "Field should have temporary revolution");
+            Assert.AreEqual(TurnAdvanceType.NextPlayer, result.TurnAdvanceType, "11-back should advance to next player (field not reset)");
+        }
+
+        /// <summary>
+        /// Test: Playing J when 11-back is disabled should not activate rule
+        /// </summary>
+        [Test]
+        public void PlayCard_WithJ_11BackDisabled_DoesNotActivate()
+        {
+            // Arrange
+            gameRules = TestHelpers.CreateGameRules(enable11Back: false);
+            gameLogic = new GameLogic(gameRules);
+
+            CardSO cardJ = TestHelpers.CreateCardByRank(11);
+            CardSO card2 = TestHelpers.CreateCardByRank(5);
+            PlayerHandSO hand = TestHelpers.CreateHand(0, cardJ, card2);
+
+            // Act
+            CardPlayResult result = gameLogic.PlayCard(cardJ, hand, FieldState.Empty());
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess, "J play should succeed");
+            Assert.IsFalse(result.ShouldActivate11Back, "11-back should not activate when disabled");
+            Assert.IsFalse(result.NewFieldState.IsTemporaryRevolution, "No temporary revolution when disabled");
+        }
+
+        /// <summary>
+        /// Test: Playing non-J card should not activate 11-back
+        /// </summary>
+        [Test]
+        public void PlayCard_NonJ_DoesNotActivate11Back()
+        {
+            // Arrange
+            gameRules = TestHelpers.CreateGameRules(enable11Back: true);
+            gameLogic = new GameLogic(gameRules);
+
+            int[] nonJRanks = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13 };
+
+            foreach (int rank in nonJRanks)
+            {
+                CardSO card = TestHelpers.CreateCardByRank(rank);
+                CardSO card2 = TestHelpers.CreateCardByRank(4);
+                PlayerHandSO hand = TestHelpers.CreateHand(0, card, card2);
+
+                // Act
+                CardPlayResult result = gameLogic.PlayCard(card, hand, FieldState.Empty());
+
+                // Assert
+                Assert.IsTrue(result.IsSuccess, $"Card {rank} play should succeed");
+                Assert.IsFalse(result.ShouldActivate11Back, $"Card {rank} should not activate 11-back");
+            }
+        }
+
+        /// <summary>
+        /// Test: Playing J as last card should win and activate 11-back
+        /// </summary>
+        [Test]
+        public void PlayCard_LastCardJ_TriggersWinAnd11Back()
+        {
+            // Arrange
+            gameRules = TestHelpers.CreateGameRules(enable11Back: true);
+            gameLogic = new GameLogic(gameRules);
+
+            CardSO cardJ = TestHelpers.CreateCardByRank(11);
+            PlayerHandSO hand = TestHelpers.CreateHand(0, cardJ);
+
+            // Act
+            CardPlayResult result = gameLogic.PlayCard(cardJ, hand, FieldState.Empty());
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess, "Last J play should succeed");
+            Assert.IsTrue(result.IsWin, "Should win with last card");
+            Assert.IsTrue(result.ShouldActivate11Back, "J should activate 11-back even when winning");
+            Assert.AreEqual(TurnAdvanceType.GameEnd, result.TurnAdvanceType, "Win takes priority - game should end");
+        }
+
+        /// <summary>
+        /// Test: During 11-back, J cannot be played on itself (follows normal strength rules)
+        /// </summary>
+        [Test]
+        public void PlayCard_During11Back_JCannotPlayOnJ()
+        {
+            // Arrange
+            gameRules = TestHelpers.CreateGameRules(enable11Back: true);
+            gameLogic = new GameLogic(gameRules);
+
+            CardSO cardJ = TestHelpers.CreateCardByRank(11);
+            CardSO card10 = TestHelpers.CreateCardByRank(10);
+            PlayerHandSO hand = TestHelpers.CreateHand(0, cardJ, card10);
+
+            // Create field with J (revolution ON, current card = J with strength 11)
+            FieldState state = FieldState.AddCard(FieldState.Empty(), cardJ, activates11Back: true);
+
+            // Act - Try to play 10 during revolution (10 < 11 in reversed strength)
+            CardPlayResult result = gameLogic.PlayCard(card10, hand, state);
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess, "10 should be playable during 11-back (10 < 11 reversed)");
+            Assert.IsTrue(result.NewFieldState.IsTemporaryRevolution, "Revolution should continue");
+        }
+
+        /// <summary>
+        /// Test: Playing J with 8 should activate both rules
+        /// </summary>
+        [Test]
+        public void PlayCard_J8_ActivatesBothRules()
+        {
+            // Note: This test assumes J and 8 can't be the same card (rank 8 vs rank 11)
+            // This test verifies the independence of 8-cut and 11-back rules
+
+            // Arrange
+            gameRules = TestHelpers.CreateGameRules(enable8Cut: true, enable11Back: true);
+            gameLogic = new GameLogic(gameRules);
+
+            CardSO card8 = TestHelpers.CreateCardByRank(8);
+            CardSO cardJ = TestHelpers.CreateCardByRank(11);
+            CardSO card3 = TestHelpers.CreateCardByRank(5);
+            PlayerHandSO hand = TestHelpers.CreateHand(0, card8, cardJ, card3);
+
+            // Act - Play 8 first
+            CardPlayResult result8 = gameLogic.PlayCard(card8, hand, FieldState.Empty());
+
+            // Assert - 8 triggers 8-cut
+            Assert.IsTrue(result8.ShouldResetField, "8 should activate 8-cut");
+            Assert.IsFalse(result8.ShouldActivate11Back, "8 should not activate 11-back");
+            Assert.AreEqual(TurnAdvanceType.SamePlayer, result8.TurnAdvanceType, "8-cut should keep same player");
+
+            // Act - Play J after field reset
+            CardPlayResult resultJ = gameLogic.PlayCard(cardJ, hand, FieldState.Empty());
+
+            // Assert - J triggers 11-back
+            Assert.IsFalse(resultJ.ShouldResetField, "J should not reset field");
+            Assert.IsTrue(resultJ.ShouldActivate11Back, "J should activate 11-back");
+            Assert.AreEqual(TurnAdvanceType.NextPlayer, resultJ.TurnAdvanceType, "11-back should advance to next player");
+        }
+
+        #endregion
+
         #region Validation Failure Tests
 
         /// <summary>

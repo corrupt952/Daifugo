@@ -74,11 +74,12 @@ namespace Daifugo.Core
             // Execute: Remove card from hand
             hand.RemoveCard(card);
 
-            // Update field state with new card
-            FieldState newFieldState = FieldState.AddCard(currentFieldState, card);
-
             // Check special rules
-            bool shouldResetField = CheckSpecialRules(card);
+            bool shouldResetField = CheckSpecialRules_8Cut(card);
+            bool shouldActivate11Back = CheckSpecialRules_11Back(card);
+
+            // Update field state with new card (apply 11-back if activated)
+            FieldState newFieldState = FieldState.AddCard(currentFieldState, card, activates11Back: shouldActivate11Back);
 
             // Check win condition
             bool isWin = hand.IsEmpty;
@@ -86,24 +87,39 @@ namespace Daifugo.Core
             return CardPlayResult.Success(
                 newFieldState: newFieldState,
                 isWin: isWin,
-                shouldResetField: shouldResetField
+                shouldResetField: shouldResetField,
+                shouldActivate11Back: shouldActivate11Back
             );
         }
 
         /// <summary>
-        /// Checks special rules for the played card
+        /// Checks if 8-cut rule is activated
         /// </summary>
         /// <param name="card">Card that was played</param>
         /// <returns>True if field should reset immediately, false otherwise</returns>
-        private bool CheckSpecialRules(CardSO card)
+        private bool CheckSpecialRules_8Cut(CardSO card)
         {
             // 8-cut rule: 8 clears the field immediately
-            if (card.Rank == 8)
+            if (gameRules.Is8CutEnabled && card.Rank == 8)
             {
                 return true;
             }
 
-            // Future special rules (革命, 縛り, etc.) will be added here
+            return false;
+        }
+
+        /// <summary>
+        /// Checks if 11-back rule is activated
+        /// </summary>
+        /// <param name="card">Card that was played</param>
+        /// <returns>True if 11-back should activate (temporary revolution), false otherwise</returns>
+        private bool CheckSpecialRules_11Back(CardSO card)
+        {
+            // 11-back rule: J (rank 11) triggers temporary revolution
+            if (gameRules.Is11BackEnabled && card.Rank == 11)
+            {
+                return true;
+            }
 
             return false;
         }
@@ -128,6 +144,11 @@ namespace Daifugo.Core
         /// Whether the field should reset immediately (e.g., 8-cut)
         /// </summary>
         public bool ShouldResetField { get; private set; }
+
+        /// <summary>
+        /// Whether 11-back rule is activated (J card triggers temporary revolution)
+        /// </summary>
+        public bool ShouldActivate11Back { get; private set; }
 
         /// <summary>
         /// The new field state after the play (includes card history for binding detection)
@@ -156,13 +177,14 @@ namespace Daifugo.Core
         /// <summary>
         /// Creates a successful result
         /// </summary>
-        public static CardPlayResult Success(FieldState newFieldState, bool isWin, bool shouldResetField)
+        public static CardPlayResult Success(FieldState newFieldState, bool isWin, bool shouldResetField, bool shouldActivate11Back = false)
         {
             return new CardPlayResult
             {
                 IsSuccess = true,
                 IsWin = isWin,
                 ShouldResetField = shouldResetField,
+                ShouldActivate11Back = shouldActivate11Back,
                 NewFieldState = newFieldState,
                 ErrorMessage = null
             };
@@ -178,6 +200,7 @@ namespace Daifugo.Core
                 IsSuccess = false,
                 IsWin = false,
                 ShouldResetField = false,
+                ShouldActivate11Back = false,
                 NewFieldState = FieldState.Empty(),
                 ErrorMessage = errorMessage
             };

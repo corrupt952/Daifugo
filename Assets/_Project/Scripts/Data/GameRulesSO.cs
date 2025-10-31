@@ -32,6 +32,9 @@ namespace Daifugo.Data
         [Tooltip("革命ルールを有効にする（4枚出しで強さ逆転）")]
         [SerializeField] private bool enableRevolution = false;
 
+        [Tooltip("11バックルールを有効にする（Jで一時的に強さ逆転）")]
+        [SerializeField] private bool enable11Back = false;
+
         [Tooltip("スペ3返しルールを有効にする（♠3でジョーカーを返せる）")]
         [SerializeField] private bool enableSpade3Return = false;
 
@@ -45,6 +48,9 @@ namespace Daifugo.Data
 
         /// <summary>縛りルールが有効か</summary>
         public bool IsBindEnabled => enableBind;
+
+        /// <summary>11バックルールが有効か</summary>
+        public bool Is11BackEnabled => enable11Back;
 
         /// <summary>スペ3返しルールが有効か</summary>
         public bool IsSpade3ReturnEnabled => enableSpade3Return;
@@ -79,6 +85,16 @@ namespace Daifugo.Data
         public void SetRevolution(bool value)
         {
             enableRevolution = value;
+        }
+
+        /// <summary>
+        /// 11バックルールの有効/無効を設定
+        /// Runtime でルールを変更する場合に使用
+        /// </summary>
+        /// <param name="value">有効にする場合は true、無効にする場合は false</param>
+        public void Set11Back(bool value)
+        {
+            enable11Back = value;
         }
 
         /// <summary>
