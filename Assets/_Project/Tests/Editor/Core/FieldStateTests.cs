@@ -479,5 +479,359 @@ namespace Daifugo.Tests.Core
         }
 
         #endregion
+
+        #region Phase 1.5: PlayHistory Tests
+
+        /// <summary>
+        /// Test: AddCard creates single-card PlayHistory entry
+        /// </summary>
+        [Test]
+        public void AddCard_CreatesPlayHistoryEntry()
+        {
+            // Arrange
+            CardSO card = TestHelpers.CreateCard(CardSO.Suit.Spade, 5);
+            FieldState empty = FieldState.Empty();
+
+            // Act
+            FieldState state = FieldState.AddCard(empty, card, playerID: 0);
+
+            // Assert
+            Assert.AreEqual(1, state.PlayHistory.Count, "PlayHistory should have 1 entry");
+            Assert.AreEqual(1, state.PlayHistory[0].Cards.Count, "First play should have 1 card");
+            Assert.AreEqual(card, state.PlayHistory[0].Cards[0], "First play should contain the card");
+            Assert.AreEqual(0, state.PlayHistory[0].PlayerID, "Player ID should be 0");
+        }
+
+        /// <summary>
+        /// Test: Multiple AddCard calls create multiple PlayHistory entries
+        /// </summary>
+        [Test]
+        public void AddCard_MultipleCards_CreatesMultipleEntries()
+        {
+            // Arrange
+            CardSO card1 = TestHelpers.CreateCard(CardSO.Suit.Spade, 5);
+            CardSO card2 = TestHelpers.CreateCard(CardSO.Suit.Heart, 7);
+
+            // Act
+            FieldState state = FieldState.Empty();
+            state = FieldState.AddCard(state, card1, playerID: 0);
+            state = FieldState.AddCard(state, card2, playerID: 1);
+
+            // Assert
+            Assert.AreEqual(2, state.PlayHistory.Count, "PlayHistory should have 2 entries");
+            Assert.AreEqual(0, state.PlayHistory[0].PlayerID, "First play by player 0");
+            Assert.AreEqual(1, state.PlayHistory[1].PlayerID, "Second play by player 1");
+        }
+
+        #endregion
+
+        #region Phase 1.5: AddCards Tests
+
+        /// <summary>
+        /// Test: AddCards with multiple cards creates CardPlay entry
+        /// </summary>
+        [Test]
+        public void AddCards_MultipleCards_CreatesPlayHistoryEntry()
+        {
+            // Arrange
+            var cards = new System.Collections.Generic.List<CardSO>
+            {
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 5)
+            };
+            FieldState empty = FieldState.Empty();
+
+            // Act
+            FieldState state = FieldState.AddCards(empty, cards, playerID: 0);
+
+            // Assert
+            Assert.AreEqual(1, state.PlayHistory.Count, "PlayHistory should have 1 entry");
+            Assert.AreEqual(2, state.PlayHistory[0].Cards.Count, "Play should have 2 cards");
+            Assert.AreEqual(0, state.PlayHistory[0].PlayerID, "Player ID should be 0");
+        }
+
+        /// <summary>
+        /// Test: AddCards with 4 cards triggers revolution
+        /// </summary>
+        [Test]
+        public void AddCards_FourCards_ActivatesRevolution()
+        {
+            // Arrange
+            var cards = new System.Collections.Generic.List<CardSO>
+            {
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Diamond, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Club, 5)
+            };
+            FieldState empty = FieldState.Empty();
+
+            // Act
+            FieldState state = FieldState.AddCards(empty, cards, playerID: 0, activatesRevolution: true);
+
+            // Assert
+            Assert.IsTrue(state.IsRevolutionActive, "Revolution should be active");
+        }
+
+        #endregion
+
+        #region Phase 1.5: Revolution State Tests
+
+        /// <summary>
+        /// Test: Empty field has no revolution
+        /// </summary>
+        [Test]
+        public void Empty_NoRevolution()
+        {
+            // Act
+            FieldState state = FieldState.Empty();
+
+            // Assert
+            Assert.IsFalse(state.IsRevolutionActive, "Empty field should not have revolution");
+        }
+
+        /// <summary>
+        /// Test: EmptyWithRevolution creates field with revolution
+        /// </summary>
+        [Test]
+        public void EmptyWithRevolution_SetsRevolutionState()
+        {
+            // Act
+            FieldState stateWithRevolution = FieldState.EmptyWithRevolution(true);
+            FieldState stateWithoutRevolution = FieldState.EmptyWithRevolution(false);
+
+            // Assert
+            Assert.IsTrue(stateWithRevolution.IsRevolutionActive, "Should have revolution");
+            Assert.IsFalse(stateWithoutRevolution.IsRevolutionActive, "Should not have revolution");
+        }
+
+        /// <summary>
+        /// Test: Revolution persists across AddCard calls
+        /// </summary>
+        [Test]
+        public void AddCard_RevolutionActive_PersistsRevolution()
+        {
+            // Arrange
+            FieldState state = FieldState.EmptyWithRevolution(true);
+            CardSO card = TestHelpers.CreateCard(CardSO.Suit.Spade, 5);
+
+            // Act
+            FieldState newState = FieldState.AddCard(state, card, playerID: 0);
+
+            // Assert
+            Assert.IsTrue(newState.IsRevolutionActive, "Revolution should persist");
+        }
+
+        #endregion
+
+        #region Phase 1.5: Effective Revolution (XOR) Tests
+
+        /// <summary>
+        /// Test: GetEffectiveRevolution returns false when both are false
+        /// </summary>
+        [Test]
+        public void GetEffectiveRevolution_BothFalse_ReturnsFalse()
+        {
+            // Arrange
+            FieldState state = FieldState.Empty();
+
+            // Act
+            bool effective = state.GetEffectiveRevolution();
+
+            // Assert
+            Assert.IsFalse(effective, "false XOR false = false");
+        }
+
+        /// <summary>
+        /// Test: GetEffectiveRevolution returns true when only IsRevolutionActive is true
+        /// </summary>
+        [Test]
+        public void GetEffectiveRevolution_OnlyRevolutionActive_ReturnsTrue()
+        {
+            // Arrange
+            FieldState state = FieldState.EmptyWithRevolution(true);
+
+            // Act
+            bool effective = state.GetEffectiveRevolution();
+
+            // Assert
+            Assert.IsTrue(effective, "true XOR false = true");
+        }
+
+        /// <summary>
+        /// Test: GetEffectiveRevolution returns true when only IsTemporaryRevolution is true
+        /// </summary>
+        [Test]
+        public void GetEffectiveRevolution_OnlyTemporaryRevolution_ReturnsTrue()
+        {
+            // Arrange
+            FieldState state = FieldState.Empty();
+            CardSO card = TestHelpers.CreateCardByRank(11);
+            state = FieldState.AddCard(state, card, playerID: 0, activates11Back: true);
+
+            // Act
+            bool effective = state.GetEffectiveRevolution();
+
+            // Assert
+            Assert.IsTrue(effective, "false XOR true = true");
+        }
+
+        /// <summary>
+        /// Test: GetEffectiveRevolution returns false when both are true (XOR cancels out)
+        /// </summary>
+        [Test]
+        public void GetEffectiveRevolution_BothTrue_ReturnsFalse()
+        {
+            // Arrange
+            FieldState state = FieldState.EmptyWithRevolution(true);
+            CardSO card = TestHelpers.CreateCardByRank(11);
+            state = FieldState.AddCard(state, card, playerID: 0, activates11Back: true);
+
+            // Act
+            bool effective = state.GetEffectiveRevolution();
+
+            // Assert
+            Assert.IsFalse(effective, "true XOR true = false (cancel out)");
+        }
+
+        #endregion
+
+        #region Phase 1.5: Play Pattern Tests
+
+        /// <summary>
+        /// Test: GetLastPlayPattern returns Single for single card
+        /// </summary>
+        [Test]
+        public void GetLastPlayPattern_SingleCard_ReturnsSingle()
+        {
+            // Arrange
+            CardSO card = TestHelpers.CreateCard(CardSO.Suit.Spade, 5);
+            FieldState state = FieldState.AddCard(FieldState.Empty(), card, playerID: 0);
+
+            // Act
+            PlayPattern pattern = state.GetLastPlayPattern();
+
+            // Assert
+            Assert.AreEqual(PlayPattern.Single, pattern);
+        }
+
+        /// <summary>
+        /// Test: GetLastPlayPattern returns Pair for pair
+        /// </summary>
+        [Test]
+        public void GetLastPlayPattern_Pair_ReturnsPair()
+        {
+            // Arrange
+            var cards = new System.Collections.Generic.List<CardSO>
+            {
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 5)
+            };
+            FieldState state = FieldState.AddCards(FieldState.Empty(), cards, playerID: 0);
+
+            // Act
+            PlayPattern pattern = state.GetLastPlayPattern();
+
+            // Assert
+            Assert.AreEqual(PlayPattern.Pair, pattern);
+        }
+
+        /// <summary>
+        /// Test: GetLastPlayPattern returns Sequence for sequence
+        /// </summary>
+        [Test]
+        public void GetLastPlayPattern_Sequence_ReturnsSequence()
+        {
+            // Arrange
+            var cards = new System.Collections.Generic.List<CardSO>
+            {
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 3),
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 4),
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 5)
+            };
+            FieldState state = FieldState.AddCards(FieldState.Empty(), cards, playerID: 0);
+
+            // Act
+            PlayPattern pattern = state.GetLastPlayPattern();
+
+            // Assert
+            Assert.AreEqual(PlayPattern.Sequence, pattern);
+        }
+
+        /// <summary>
+        /// Test: GetLastPlayPattern returns Invalid for empty field
+        /// </summary>
+        [Test]
+        public void GetLastPlayPattern_EmptyField_ReturnsInvalid()
+        {
+            // Arrange
+            FieldState state = FieldState.Empty();
+
+            // Act
+            PlayPattern pattern = state.GetLastPlayPattern();
+
+            // Assert
+            Assert.AreEqual(PlayPattern.Invalid, pattern);
+        }
+
+        #endregion
+
+        #region Phase 1.5: Play Count Tests
+
+        /// <summary>
+        /// Test: GetLastPlayCount returns 1 for single card
+        /// </summary>
+        [Test]
+        public void GetLastPlayCount_SingleCard_Returns1()
+        {
+            // Arrange
+            CardSO card = TestHelpers.CreateCard(CardSO.Suit.Spade, 5);
+            FieldState state = FieldState.AddCard(FieldState.Empty(), card, playerID: 0);
+
+            // Act
+            int count = state.GetLastPlayCount();
+
+            // Assert
+            Assert.AreEqual(1, count);
+        }
+
+        /// <summary>
+        /// Test: GetLastPlayCount returns 2 for pair
+        /// </summary>
+        [Test]
+        public void GetLastPlayCount_Pair_Returns2()
+        {
+            // Arrange
+            var cards = new System.Collections.Generic.List<CardSO>
+            {
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 5)
+            };
+            FieldState state = FieldState.AddCards(FieldState.Empty(), cards, playerID: 0);
+
+            // Act
+            int count = state.GetLastPlayCount();
+
+            // Assert
+            Assert.AreEqual(2, count);
+        }
+
+        /// <summary>
+        /// Test: GetLastPlayCount returns 0 for empty field
+        /// </summary>
+        [Test]
+        public void GetLastPlayCount_EmptyField_Returns0()
+        {
+            // Arrange
+            FieldState state = FieldState.Empty();
+
+            // Act
+            int count = state.GetLastPlayCount();
+
+            // Assert
+            Assert.AreEqual(0, count);
+        }
+
+        #endregion
     }
 }

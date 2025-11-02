@@ -44,21 +44,29 @@ namespace Daifugo.Data
 
         /// <summary>
         /// Gets the card strength according to Daifugo rules
+        /// Phase 1.5: Supports revolution mode where card strengths are reversed
         /// </summary>
-        /// <returns>Card strength (Joker=16, 2=15, Ace=14, King=13, ..., 3=3)</returns>
-        public int GetStrength()
+        /// <param name="isRevolution">Whether revolution is active (default: false)</param>
+        /// <returns>Card strength value for comparison</returns>
+        public int GetStrength(bool isRevolution = false)
         {
-            // Joker is strongest (beats rank 2)
-            if (isJoker) return 16;
+            // Joker is always strongest (unchanged in revolution)
+            if (IsJoker) return 16;
 
-            // 2 is second strongest
-            if (rank == 2) return 15;
-
-            // Ace is third strongest
-            if (rank == 1) return 14;
-
-            // Other cards: rank = strength
-            return rank;
+            if (isRevolution)
+            {
+                // Revolution: weak cards become strong
+                if (Rank == 2) return 2;      // 2 is weakest (except Joker)
+                if (Rank == 1) return 3;      // A is 3
+                return 18 - Rank;             // 3 → 15, 4 → 14, ..., K(13) → 5
+            }
+            else
+            {
+                // Normal: Phase 1 logic unchanged
+                if (Rank == 2) return 15;     // 2 is strongest (except Joker)
+                if (Rank == 1) return 14;     // A is 14
+                return Rank;                   // 3-13 unchanged
+            }
         }
 
         /// <summary>

@@ -516,9 +516,611 @@ public bool CanPlayCard(CardSO card, FieldState fieldState, GameRulesSO gameRule
 
 ---
 
+# Phase 1.5: 複数枚出し機能 - 設計判断と明確化
+
+## C-015: プレイパターンのデータ構造
+
+### 質問
+複数枚のプレイパターン（単体/ペア/3枚/4枚/階段）をどのデータ構造で表現するか？
+
+### 選択肢
+1. **enum PlayPattern**（単純な列挙）
+2. **struct PlayPattern**（枚数やカード情報を含む）
+3. **class PlayPattern**（メソッドを含む）
+
+### 判断
+**enum PlayPattern**
+
+```csharp
+public enum PlayPattern
+{
+    Single,      // 1枚
+    Pair,        // 2枚
+    Triple,      // 3枚
+    Quadruple,   // 4枚
+    Sequence     // 階段（3枚以上）
+}
+```
+
+### 理由
+- Phase 1.5では枚数が固定（ペア=2枚、3枚=3枚など）
+- シンプルなenumで十分
+- パターン判定ロジックは `PlayPatternDetector` クラスに分離
+- Phase 2以降で複雑化したら struct に変更可能
+
+---
+
+## C-016: 階段の強さ比較方法
+
+### 質問
+階段同士を比較する時、どのカードで強さを判定するか？
+
+### 選択肢
+1. **最も強いカード**で比較（例: ♠3-4-5 vs ♠6-7-8 → 8 vs 5）
+2. **最も弱いカード**で比較（例: ♠3-4-5 vs ♠6-7-8 → 6 vs 3）
+3. **中央のカード**で比較
+
+### 判断
+**最も強いカード**で比較
+
+### 理由
+- 大富豪の一般的なルールに従う
+- 直感的（階段の「頂点」で比較）
+- 実装がシンプル（`cards.Max(c => c.GetStrength())`）
+
+### 革命時の扱い
+革命中は**最も弱いカード**で比較（強さ逆転のため）
+
+---
+
+## C-017: 革命と11バックの相互作用
+
+### 質問
+革命中に11バック（J）がプレイされた場合、どうなるか？
+
+### 設計方針
+**11バックは「現在の状態を反転」させる**
+
+#### パターン1: 通常 → 11バック
+- 通常状態（3=3, 2=15）
+- Jプレイ → 一時革命発動
+- 一時革命状態（3=15, 2=2）
+- 場が流れる → 通常に戻る
+
+#### パターン2: 革命 → 11バック
+- 革命状態（3=15, 2=2）← 4枚出しで発動
+- Jプレイ → 一時的に通常に戻る
+- 一時通常状態（3=3, 2=15）
+- 場が流れる → 革命に戻る
+
+### 実装方針
+```csharp
+// FieldState
+public readonly bool IsRevolutionActive;       // 永続革命（ゲーム終了まで）
+public readonly bool IsTemporaryRevolution;    // 一時革命（場が流れるまで）
+
+// 実効的な革命状態
+bool effectiveRevolution = IsRevolutionActive XOR IsTemporaryRevolution;
+```
+
+### 理由
+- XOR（排他的論理和）で自然に表現できる
+- Phase 2以降の複雑なルール追加にも対応可能
+- 状態管理がシンプル
+
+---
+
+## C-018: 縛りの詳細判定（複数枚）
+
+### 質問
+複数枚プレイ時の縛り判定はどうするか？
+
+### 設計方針
+**最後の2プレイが「同じスートで統一されている」場合のみ縛り発動**
+
+#### ケース1: ペア → ペア
+```
+プレイ1: ♠5 ♠5（同じスート統一）
+プレイ2: ♠7 ♠7（同じスート統一）
+→ 縛り発動（スペード）
+```
+
+#### ケース2: 混合スート → 統一スート
+```
+プレイ1: ♠5 ♥5（混合スート）
+プレイ2: ♠7 ♠7（同じスート統一）
+→ 縛らない（プレイ1が混合）
+```
+
+#### ケース3: 階段 → 階段
+```
+プレイ1: ♠3-4-5（スペード階段）
+プレイ2: ♠6-7-8（スペード階段）
+→ 縛り発動（スペード）
+```
+
+### 判定アルゴリズム
+```csharp
+bool IsBindingActive(FieldState fieldState)
+{
+    if (!gameRules.IsBindEnabled) return false;
+    if (fieldState.CardsInField.Count < 2) return false;
+
+    // 最後のプレイのカードを取得
+    var lastPlay = GetLastPlay(fieldState);
+    var secondLastPlay = GetSecondLastPlay(fieldState);
+
+    // 両方とも同じスートで統一されているか
+    bool lastPlayUnified = IsAllSameSuit(lastPlay) && !ContainsJoker(lastPlay);
+    bool secondLastPlayUnified = IsAllSameSuit(secondLastPlay) && !ContainsJoker(secondLastPlay);
+
+    // 両方とも統一 かつ 同じスート
+    if (lastPlayUnified && secondLastPlayUnified)
+    {
+        return lastPlay[0].CardSuit == secondLastPlay[0].CardSuit;
+    }
+
+    return false;
+}
+```
+
+### 理由
+- 大富豪の一般的な縛りルールに従う
+- ジョーカーは縛りに影響しない
+- 混合スートのペアは縛りの対象外
+
+---
+
+## C-019: AI戦略の詳細（複数枚出し）
+
+### 質問
+AIは複数枚をどう判断するか？特に革命を起こすべきか？
+
+### 設計方針
+**Phase 1.5では「革命を起こさない」シンプル戦略**
+
+#### 基本方針
+1. 場のパターンに合うカードを抽出
+2. プレイ可能な最弱の組み合わせを選択
+3. 4枚持っていても、3枚で出す（革命回避）
+
+#### 具体例
+```
+場が空の時:
+  - 単体で最弱カードを出す（ペア温存）
+  - 理由: ペアは「強い札を確実に出せる手段」として温存
+
+場がペアの時:
+  - 手持ちのペアから最弱を出す
+  - 4枚持っていても2枚だけ出す
+
+場が3枚の時:
+  - 手持ちの3枚から最弱を出す
+
+場が階段3枚の時:
+  - 手持ちの階段3枚から最弱を出す
+```
+
+### なぜ革命を起こさないか
+1. **手札評価が複雑**: 革命が有利かどうかは手札全体を見ないと判断できない
+2. **Phase 1.5のスコープ外**: 高度なAI戦略はPhase 2以降で実装
+3. **シンプルさ優先**: 基本動作の確実性を重視
+
+### Phase 2以降で実装予定
+- 手札の平均強度を計算
+- 革命が有利かどうかを判定
+- 4枚を戦略的にプレイ
+
+### 理由
+- YAGNI原則（必要になってから実装）
+- Phase 1.5の目的は「複数枚出しの基本実装」
+- テストとデバッグを容易にする
+
+---
+
+## C-020: 階段の定義と制約
+
+### 質問
+階段の定義を明確にする。回り階段（K-A-2）やジョーカーを含む階段は？
+
+### 設計方針
+
+#### Phase 1.5で実装する階段
+- **連続するランク**: 3-4-5、10-J-Q-K など
+- **同じスート必須**: 全て♠、全て♥ など
+- **最小3枚**: 2枚では階段にならない
+- **最大13枚**: A-2-3-...-K-A（理論上）
+
+#### Phase 1.5で実装しない階段
+- **回り階段**: K-A-2、Q-K-A-2 など（Aを跨ぐ）
+- **ジョーカーを含む階段**: ♠3-Joker-♠5（ジョーカーが4の代わり）
+- **混合スート階段**: ♠3-♥4-♦5（縛りなし階段）
+
+### 判定アルゴリズム
+```csharp
+bool IsSequence(List<CardSO> cards)
+{
+    if (cards.Count < 3) return false;
+
+    // ジョーカーを含む場合は階段にならない（Phase 1.5）
+    if (cards.Any(c => c.IsJoker)) return false;
+
+    // 同じスートか確認
+    var suit = cards[0].CardSuit;
+    if (cards.Any(c => c.CardSuit != suit)) return false;
+
+    // ランク順にソート
+    var sorted = cards.OrderBy(c => c.Rank).ToList();
+
+    // 連続しているか確認
+    for (int i = 1; i < sorted.Count; i++)
+    {
+        if (sorted[i].Rank != sorted[i-1].Rank + 1)
+            return false;
+    }
+
+    return true;
+}
+```
+
+### Phase 2以降で拡張可能
+- ジョーカーをワイルドカードとして使用
+- 回り階段の対応（設定で有効/無効）
+
+### 理由
+- シンプルな実装でバグを減らす
+- 大富豪の基本ルールに従う
+- Phase 2での拡張ポイントを明確にする
+
+---
+
+## C-021: 禁止上がりの複数枚判定
+
+### 質問
+禁止カード（2、8、ジョーカー、スペ3）を含む複数枚で上がった場合、負けか？
+
+### 設計方針
+**1枚でも禁止カードが含まれていたら負け**
+
+#### 判定例
+```
+ケース1: ♦2 ♣2で上がる → 負け（2を含む）
+ケース2: ♦8 ♣8 ♥8で上がる → 負け（8を含む）
+ケース3: ♠3 ♠4 ♠5の階段で上がる → 負け（スペ3を含む）
+ケース4: Joker ♦5のペア → 不可能（Phase 1.5ではJokerは階段不可）
+ケース5: ♦5 ♣5で上がる → 勝ち（禁止カードなし）
+```
+
+### 実装方針
+```csharp
+bool IsForbiddenFinish(List<CardSO> cards)
+{
+    if (!gameRules.IsForbiddenFinishEnabled) return false;
+
+    foreach (var card in cards)
+    {
+        if (card.IsJoker) return true;
+        if (card.Rank == 2) return true;
+        if (card.Rank == 8) return true;
+        if (card.CardSuit == CardSO.Suit.Spade && card.Rank == 3) return true;
+    }
+
+    return false;
+}
+```
+
+### 理由
+- 複数枚でも禁止上がりルールは適用
+- 1枚でも含まれていたらアウト
+- 大富豪の一般的なローカルルールに従う
+
+---
+
+## C-022: 複数枚選択UIの挙動
+
+### 質問
+複数枚選択時のUI挙動を明確にする。インテリジェントハイライトは実装するか？
+
+### 設計方針
+**Phase 1と同じ自由選択方式を維持**
+
+#### 実装する機能
+- 複数枚のクリック選択/解除
+- 選択中のカードを `card--selected` クラスで視覚化
+- 「Play Card」ボタンクリック時にバリデーション
+- 無効な組み合わせは警告表示
+
+#### 実装しない機能（Phase 2以降）
+- インテリジェントハイライト（有効な次の手の提案）
+- 自動組み合わせ提案
+- 選択途中でのリアルタイムバリデーション
+
+### UI操作フロー
+```
+1. プレイヤーがカードをクリック → 選択状態
+2. さらにカードをクリック → 複数選択
+3. 選択済みカードを再クリック → 選択解除
+4. 「Play Card」ボタンをクリック
+5. システムが組み合わせを検証
+   - OK → カードプレイ
+   - NG → エラー警告表示、選択状態は維持
+```
+
+### エラーメッセージ例
+```
+"無効な組み合わせです。同じランクまたは階段を選んでください"
+"場と同じ枚数を出してください（2枚）"
+"場と同じパターンを出してください（ペア）"
+"より強いカードを出してください"
+"縛り中です。♠のカードのみ出せます"
+```
+
+### 理由
+- Phase 1の実装を最大限活用
+- 実装コストを抑える
+- ユーザーは試行錯誤できる（学習効果）
+- インテリジェントハイライトはPhase 2で検討
+
+---
+
+## C-023: プレイパターン判定の優先順位
+
+### 質問
+選択されたカードから、どの順序でパターンを判定するか？
+
+### 設計方針
+**同じランク優先、次に階段**
+
+#### 判定アルゴリズム
+```csharp
+PlayPattern DetectPattern(List<CardSO> cards)
+{
+    // 1. 単体
+    if (cards.Count == 1) return PlayPattern.Single;
+
+    // 2. 同じランク判定
+    if (IsAllSameRank(cards))
+    {
+        if (cards.Count == 2) return PlayPattern.Pair;
+        if (cards.Count == 3) return PlayPattern.Triple;
+        if (cards.Count == 4) return PlayPattern.Quadruple;
+    }
+
+    // 3. 階段判定
+    if (IsSequence(cards)) return PlayPattern.Sequence;
+
+    // 4. どれでもない
+    return PlayPattern.Invalid;
+}
+```
+
+### 優先順位の理由
+- **同じランクが優先**: 判定が高速（ソート不要）
+- **階段は次**: ソートと連続性チェックが必要
+- **4枚は特別扱い不要**: Quadrupleとして検出され、別途革命判定
+
+### エッジケース
+```
+入力: ♠5 ♠5 ♠6 ♠7
+  → 同じランクではない
+  → 階段でもない（5が2枚ある）
+  → Invalid
+```
+
+### 理由
+- シンプルで予測可能
+- パフォーマンス最適化
+- バグを減らす
+
+---
+
+## C-024: 8切りの複数枚対応
+
+### 質問
+8のペア、8の3枚、8の4枚でも場をリセットするか？
+
+### 設計方針
+**8を含むプレイ全てで場をリセット**
+
+#### 対象
+- 8単体（Phase 1から実装済み）
+- 8のペア（♦8 ♣8）
+- 8の3枚（♦8 ♣8 ♥8）
+- 8の4枚（♦8 ♣8 ♥8 ♠8）→ 革命も同時発動
+- 8を含む階段（♠7-8-9）
+
+### 実装方針
+```csharp
+bool ShouldResetField(List<CardSO> cards)
+{
+    if (!gameRules.Is8CutEnabled) return false;
+
+    // 8を含むか
+    return cards.Any(c => c.Rank == 8 && !c.IsJoker);
+}
+```
+
+### 8の4枚の特殊ケース
+```
+8の4枚をプレイ:
+  1. 場をリセット
+  2. 革命発動
+  3. 同じプレイヤー続行
+  4. 革命状態で次のカードをプレイ
+```
+
+### 理由
+- 8切りは「8があれば場をリセット」という単純なルール
+- 複数枚でも一貫性を保つ
+- 大富豪の一般的なローカルルールに従う
+
+---
+
+## C-025: データ構造の拡張方針
+
+### 質問
+Phase 1のデータ構造（FieldState、GameLogicなど）をどう拡張するか？
+
+### 設計方針
+**既存の構造を拡張、破壊的変更は避ける**
+
+#### FieldState（struct）
+```csharp
+// Phase 1
+public struct FieldState
+{
+    public readonly CardSO CurrentCard;  // 最後の1枚
+    public bool IsEmpty => CurrentCard == null;
+}
+
+// Phase 1.5への拡張
+public struct FieldState
+{
+    public readonly IReadOnlyList<CardSO> CardsInField;  // 全カード履歴
+    public readonly bool IsRevolutionActive;              // 永続革命
+    public readonly bool IsTemporaryRevolution;           // 一時革命
+
+    public CardSO CurrentCard => CardsInField.LastOrDefault();
+    public bool IsEmpty => CardsInField.Count == 0;
+
+    // Factory Methods（イミュータブル）
+    public static FieldState Empty();
+    public static FieldState AddCard(FieldState current, CardSO card);
+    public static FieldState AddCards(FieldState current, List<CardSO> cards);
+}
+```
+
+#### GameLogic
+```csharp
+// Phase 1
+CardPlayResult PlayCard(CardSO card, PlayerHandSO hand, FieldState fieldState);
+
+// Phase 1.5への拡張（オーバーロード）
+CardPlayResult PlayCards(List<CardSO> cards, PlayerHandSO hand, FieldState fieldState);
+```
+
+### 理由
+- Phase 1のコードは動き続ける
+- 段階的な移行が可能
+- テストの追加が容易
+
+---
+
+## C-026: 革命中のカード強さ計算式
+
+### 質問
+革命が発動している時、カードの強さをどう計算するか？
+
+### 背景
+通常時のカード強さ:
+- 3 = 3（最弱のランクカード）
+- 4 = 4
+- ...
+- K(13) = 13
+- A(1) = 14
+- 2 = 15（最強のランクカード）
+- Joker = 16（最強）
+
+革命時は「弱いカードが強くなる」ため、3が最強、2が最弱になる必要がある。
+
+### 設計方針
+**革命時の強さマッピング**
+
+```
+Joker: 16（最強、変わらず）
+3:     15（最強のランクカード）
+4:     14
+5:     13
+6:     12
+7:     11
+8:     10
+9:     9
+10:    8
+J(11): 7
+Q(12): 6
+K(13): 5
+A(1):  3
+2:     2（最弱のランクカード）
+```
+
+### 実装方針
+
+```csharp
+public int GetStrength(bool isRevolution = false)
+{
+    // Jokerは革命の影響を受けない
+    if (IsJoker) return 16;
+
+    if (isRevolution)
+    {
+        // 革命中の強さ計算
+        if (Rank == 2) return 2;      // 2が最弱（Joker以外）
+        if (Rank == 1) return 3;      // Aは3
+        return 18 - Rank;             // 3 → 15, 4 → 14, ..., K(13) → 5
+    }
+    else
+    {
+        // 通常時の強さ計算（Phase 1から変更なし）
+        if (Rank == 2) return 15;     // 2が最強（Joker以外）
+        if (Rank == 1) return 14;     // Aは14
+        return Rank;                   // 3-13はそのまま
+    }
+}
+```
+
+### 検証
+```
+通常時:
+  3  → GetStrength(false) = 3
+  A  → GetStrength(false) = 14
+  2  → GetStrength(false) = 15
+  Joker → GetStrength(false) = 16
+
+革命時:
+  3  → GetStrength(true) = 18 - 3 = 15  ✓（最強のランクカード）
+  4  → GetStrength(true) = 18 - 4 = 14  ✓
+  K  → GetStrength(true) = 18 - 13 = 5  ✓
+  A  → GetStrength(true) = 3            ✓
+  2  → GetStrength(true) = 2            ✓（最弱のランクカード）
+  Joker → GetStrength(true) = 16       ✓（最強）
+```
+
+### 複数枚出しへの適用
+階段の強さ比較時:
+- **通常時**: 最も強いカードで比較（`cards.Max(c => c.GetStrength(false))`）
+- **革命時**: 最も弱いカードで比較（`cards.Min(c => c.GetStrength(true))`）
+
+例:
+```
+通常時: ♠3-4-5 vs ♠6-7-8
+  → Max(3,4,5) = 5 vs Max(6,7,8) = 8
+  → 5 < 8 → ♠6-7-8の勝ち
+
+革命時: ♠3-4-5 vs ♠6-7-8（革命中の強さで計算）
+  → Min(15,14,13) = 13 vs Min(12,11,10) = 10
+  → 13 > 10 → ♠3-4-5の勝ち
+```
+
+### 11バックとの組み合わせ
+実効的な革命状態 = `IsRevolutionActive XOR IsTemporaryRevolution`
+
+強さ計算時:
+```csharp
+bool effectiveRevolution = fieldState.IsRevolutionActive ^ fieldState.IsTemporaryRevolution;
+int strength = card.GetStrength(effectiveRevolution);
+```
+
+### 理由
+- 数学的に一貫性がある（18 - Rank の公式）
+- Jokerは常に最強（革命の影響を受けない）
+- 2が最弱、3が最強（革命の定義に合致）
+- 実装がシンプル
+
+---
+
 ## まとめ
 
-これらの設計判断により、Phase 1の仕様が明確になった。
+これらの設計判断により、Phase 1とPhase 1.5の仕様が明確になった。
 
 次のステップ：
 - **/plan**: 技術実装計画の策定

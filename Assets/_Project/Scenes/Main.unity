@@ -490,6 +490,7 @@ MonoBehaviour:
   onFieldReset: {fileID: 11400000, guid: 78b7ac6c0fc6b47699429d9ecd2e454a, type: 2}
   onGameEnded: {fileID: 11400000, guid: d9f22a0ca0e104764b746a7bb0204053, type: 2}
   onPlayCardRequested: {fileID: 11400000, guid: 3ce52627793344060880d4c51b866543, type: 2}
+  onPlayCardsRequested: {fileID: 11400000, guid: f42274d2abf7244a5b2794ac723c6662, type: 2}
   onPassButtonClicked: {fileID: 11400000, guid: 6b033279cf1214bd594eb0564dc2b4ae, type: 2}
 --- !u!114 &1231515947
 MonoBehaviour:
@@ -571,6 +572,7 @@ MonoBehaviour:
   onFieldReset: {fileID: 11400000, guid: 78b7ac6c0fc6b47699429d9ecd2e454a, type: 2}
   onGameEnded: {fileID: 11400000, guid: d9f22a0ca0e104764b746a7bb0204053, type: 2}
   onPlayCardRequested: {fileID: 11400000, guid: 3ce52627793344060880d4c51b866543, type: 2}
+  onPlayCardsRequested: {fileID: 11400000, guid: f42274d2abf7244a5b2794ac723c6662, type: 2}
   onPassButtonClicked: {fileID: 11400000, guid: 6b033279cf1214bd594eb0564dc2b4ae, type: 2}
 --- !u!1 &1612777158
 GameObject:
@@ -639,6 +641,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: f9fdc8a639cf54f049c8061c11611393, type: 2}
   gameRules: {fileID: 11400000, guid: e567e3377f20d445e969ada29f3e7dff, type: 2}
   onPlayCardRequested: {fileID: 11400000, guid: 3ce52627793344060880d4c51b866543, type: 2}
+  onPlayCardsRequested: {fileID: 11400000, guid: f42274d2abf7244a5b2794ac723c6662, type: 2}
   onPassButtonClicked: {fileID: 11400000, guid: 6b033279cf1214bd594eb0564dc2b4ae, type: 2}
   onGameStarted: {fileID: 11400000, guid: 1e559a098bd1048a1921013bec63c699, type: 2}
   onCardPlayed: {fileID: 11400000, guid: c64d5e50975ed488b890e2270acf9439, type: 2}

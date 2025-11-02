@@ -51,8 +51,8 @@ namespace Daifugo.UI
         [SerializeField] private IntEventChannelSO onGameEnded;
 
         [Header("Events - Raise (Commands)")]
-        [Tooltip("Raised when UI requests to play a card")]
-        [SerializeField] private CardEventChannelSO onPlayCardRequested;
+        [Tooltip("Raised when UI requests to play cards (supports 1 or more cards)")]
+        [SerializeField] private ListCardEventChannelSO onPlayCardsRequested;
 
         [Tooltip("Raised when Pass button is clicked")]
         [SerializeField] private VoidEventChannelSO onPassButtonClicked;
@@ -260,6 +260,7 @@ namespace Daifugo.UI
             }
         }
 
+
         /// <summary>
         /// Updates button states
         /// </summary>
@@ -279,22 +280,21 @@ namespace Daifugo.UI
 
         /// <summary>
         /// Handles Play Card button click (raises command event)
+        /// Supports 1 or more cards
         /// </summary>
         private void OnPlayCardButtonClick()
         {
-            if (playerHandUI == null || onPlayCardRequested == null) return;
+            if (playerHandUI == null || onPlayCardsRequested == null) return;
 
             var selectedCards = playerHandUI.GetSelectedCards();
             if (selectedCards.Count == 0) return;
 
-            // Phase 1: Play single card only
-            // Raise command event to request card play
-            onPlayCardRequested.RaiseEvent(selectedCards[0]);
+            // Always use list-based event (works for 1 or more cards)
+            onPlayCardsRequested.RaiseEvent(selectedCards);
+            Debug.Log($"[GameScreenUI] Requested to play {selectedCards.Count} card(s)");
 
             // Clear selection after playing
             playerHandUI.ClearSelection();
-
-            Debug.Log($"[GameScreenUI] Requested to play card: {selectedCards[0].CardSuit} {selectedCards[0].Rank}");
         }
 
         /// <summary>
@@ -395,25 +395,33 @@ namespace Daifugo.UI
                 RefreshPlayerHand();
             }
 
+            // Display all cards immediately (before animation completes)
+            DisplayCardsOnField(eventData.Cards);
+
             // Animate card based on player type
             if (eventData.PlayerID == 0)
             {
                 // Human player: animate from hand position if available
                 if (sourceCardRect.HasValue)
                 {
-                    AnimateCardToField(eventData.FieldState.CurrentCard, sourceCardRect.Value, eventData.OnAnimationComplete);
+                    AnimateCardToField(eventData.Card, sourceCardRect.Value, () =>
+                    {
+                        eventData.OnAnimationComplete?.Invoke();
+                    });
                 }
                 else
                 {
-                    // Fallback: display immediately and invoke callback
-                    DisplayCardOnField(eventData.FieldState.CurrentCard);
+                    // Fallback: invoke callback immediately
                     eventData.OnAnimationComplete?.Invoke();
                 }
             }
             else
             {
                 // CPU player: animate with flip from opponent hand
-                AnimateCPUCardToField(eventData.FieldState.CurrentCard, eventData.PlayerID, eventData.OnAnimationComplete);
+                AnimateCPUCardToField(eventData.Card, eventData.PlayerID, () =>
+                {
+                    eventData.OnAnimationComplete?.Invoke();
+                });
             }
 
             // Update opponent hands display
@@ -467,12 +475,8 @@ namespace Daifugo.UI
                     // Remove animated card
                     root.Remove(animatedCard);
 
-                    // Display actual card on field
-                    DisplayCardOnField(card);
-
                     // Wait 0.5s before invoking callback to let player see the card
                     // UX Design: Ensures player can visually confirm played card before game state changes
-                    // Note: This fixed delay may be replaced with visual effects (particle, glow, etc.) in future
                     if (onComplete != null)
                     {
                         LMotion.Create(0f, 1f, 0.5f)
@@ -596,12 +600,8 @@ namespace Daifugo.UI
                             // Remove animated card
                             root.Remove(cardElement);
 
-                            // Display actual card on field
-                            DisplayCardOnField(card);
-
                             // Wait 0.5s before invoking callback to let player see the card
                             // UX Design: Ensures player can visually confirm played card before game state changes
-                            // Note: This fixed delay may be replaced with visual effects (particle, glow, etc.) in future
                             if (onComplete != null)
                             {
                                 LMotion.Create(0f, 1f, 0.5f)
@@ -621,21 +621,32 @@ namespace Daifugo.UI
         }
 
         /// <summary>
-        /// Displays a card on the field
+        /// Displays multiple cards on the field
         /// </summary>
-        private void DisplayCardOnField(CardSO card)
+        private void DisplayCardsOnField(System.Collections.Generic.List<CardSO> cards)
         {
-            if (fieldCardsContainer == null || card == null) return;
+            if (fieldCardsContainer == null || cards == null || cards.Count == 0) return;
 
-            // Clear previous field card
+            // Clear previous field cards
             fieldCardsContainer.Clear();
             currentFieldCardUI = null;
 
-            // Create new card UI for the field
-            currentFieldCardUI = new CardUI(card);
-            fieldCardsContainer.Add(currentFieldCardUI.Element);
+            // Create card UIs for all cards
+            foreach (var card in cards)
+            {
+                CardUI cardUI = new CardUI(card);
+                fieldCardsContainer.Add(cardUI.Element);
+            }
 
-            Debug.Log($"[GameScreenUI] Displayed {card.CardSuit} {card.Rank} on field");
+            Debug.Log($"[GameScreenUI] Displayed {cards.Count} card(s) on field");
+        }
+
+        /// <summary>
+        /// Displays a single card on the field (Phase 1 compatibility)
+        /// </summary>
+        private void DisplayCardOnField(CardSO card)
+        {
+            DisplayCardsOnField(new System.Collections.Generic.List<CardSO> { card });
         }
 
         /// <summary>
@@ -674,6 +685,14 @@ namespace Daifugo.UI
 
             // Not player's turn - no cards are playable
             if (currentPlayerID != 0)
+            {
+                playerHandUI.HighlightPlayableCards(new List<CardSO>());
+                return;
+            }
+
+            // Phase 1.5: Field requires multiple cards → no single card highlight
+            // TODO Phase 2: Implement proper multiple card playable detection
+            if (!currentFieldState.IsEmpty && currentFieldState.GetLastPlayCount() > 1)
             {
                 playerHandUI.HighlightPlayableCards(new List<CardSO>());
                 return;
@@ -790,9 +809,9 @@ namespace Daifugo.UI
             }
 
             // Validate event channels (Raise)
-            if (onPlayCardRequested == null)
+            if (onPlayCardsRequested == null)
             {
-                Debug.LogWarning($"[{GetType().Name}] onPlayCardRequested is not assigned on {gameObject.name}.", this);
+                Debug.LogWarning($"[{GetType().Name}] onPlayCardsRequested is not assigned on {gameObject.name}.", this);
             }
 
             if (onPassButtonClicked == null)

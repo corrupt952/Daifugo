@@ -22,8 +22,8 @@ namespace Daifugo.Core
         [SerializeField] private GameRulesSO gameRules;
 
         [Header("Events - Commands")]
-        [Tooltip("Raised when UI/AI requests to play a card")]
-        [SerializeField] private CardEventChannelSO onPlayCardRequested;
+        [Tooltip("Raised when UI/AI requests to play cards (supports 1 or more cards)")]
+        [SerializeField] private ListCardEventChannelSO onPlayCardsRequested;
 
         [Tooltip("Raised when Pass button is clicked")]
         [SerializeField] private VoidEventChannelSO onPassButtonClicked;
@@ -61,7 +61,7 @@ namespace Daifugo.Core
         private void OnEnable()
         {
             // Subscribe to command events
-            onPlayCardRequested.OnEventRaised += HandlePlayCardRequested;
+            onPlayCardsRequested.OnEventRaised += HandlePlayCardsRequested;
             onPassButtonClicked.OnEventRaised += HandlePassButtonClicked;
             onFieldReset.OnEventRaised += HandleFieldReset;
         }
@@ -69,7 +69,7 @@ namespace Daifugo.Core
         private void OnDisable()
         {
             // Unsubscribe from command events
-            onPlayCardRequested.OnEventRaised -= HandlePlayCardRequested;
+            onPlayCardsRequested.OnEventRaised -= HandlePlayCardsRequested;
             onPassButtonClicked.OnEventRaised -= HandlePassButtonClicked;
             onFieldReset.OnEventRaised -= HandleFieldReset;
         }
@@ -146,14 +146,14 @@ namespace Daifugo.Core
         }
 
         /// <summary>
-        /// Handles card play request from UI or AI (Command Event)
-        /// Uses GameLogic for testable card play logic with special rules (e.g., 8-cut)
+        /// Handles cards play request from UI or AI (Command Event)
+        /// Supports 1 or more cards (Phase 1 compatible)
         /// </summary>
-        private void HandlePlayCardRequested(CardSO card)
+        private void HandlePlayCardsRequested(System.Collections.Generic.List<CardSO> cards)
         {
             if (!isGameActive)
             {
-                Debug.LogWarning("[GameManager] Card play requested while game is not active.");
+                Debug.LogWarning("[GameManager] Multiple card play requested while game is not active.");
                 return;
             }
 
@@ -162,27 +162,24 @@ namespace Daifugo.Core
             PlayerHandSO hand = playerHands[currentPlayer];
 
             // Execute card play logic (testable)
-            CardPlayResult result = gameLogic.PlayCard(card, hand, currentFieldState);
+            CardPlayResult result = gameLogic.PlayCards(cards, hand, currentFieldState);
 
             // Handle failure
             if (!result.IsSuccess)
             {
-                Debug.LogWarning($"[GameManager] Card play failed: {result.ErrorMessage}");
+                Debug.LogWarning($"[GameManager] Multiple card play failed: {result.ErrorMessage}");
                 return;
             }
 
             // Update field state
             currentFieldState = result.NewFieldState;
 
-            Debug.Log($"[GameManager] Player {currentPlayer} played {card.CardSuit} {card.Rank}");
+            Debug.Log($"[GameManager] Player {currentPlayer} played {cards.Count} cards");
 
             // Create callback for post-animation processing
-            // This will be invoked by UI after card animation completes
-            // Ensures game logic executes after visual feedback, maintaining proper game progression timeline
             System.Action onAnimationComplete = () =>
             {
                 // Step 1: Check for special rules (8-cut)
-                // Must execute before win check - even if last card is 8, field resets for potential continuation
                 if (result.ShouldResetField)
                 {
                     Debug.Log("[GameManager] 8-cut activated! Field will reset.");
@@ -190,25 +187,39 @@ namespace Daifugo.Core
                     onFieldReset.RaiseEvent();
                 }
 
+                // Step 1.5: Check for revolution
+                if (result.ShouldActivateRevolution)
+                {
+                    Debug.Log("[GameManager] Revolution activated!");
+                }
+
                 // Step 2: Check win condition
-                // If player has no cards left, game ends immediately (no turn advance)
                 if (result.IsWin)
                 {
-                    EndGame(currentPlayer);
+                    if (result.IsForbiddenFinish)
+                    {
+                        // Forbidden finish: Player loses instead of wins
+                        // Phase 1.5: Simplified - end game with message
+                        Debug.LogWarning($"[GameManager] Player {currentPlayer} attempted forbidden finish! (Joker/2/8/Spade3)");
+                        // TODO Phase 2: Continue game with remaining players
+                        // For now, treat as game over
+                        EndGame(currentPlayer); // Temporary: still ends game
+                    }
+                    else
+                    {
+                        EndGame(currentPlayer);
+                    }
                     return;
                 }
 
                 // Step 3: Advance turn based on result
-                // TurnAdvanceType is derived from special rules:
-                // - SamePlayer: 8-cut or other special rules that grant another turn
-                // - NextPlayer: Normal card play
                 turnManager.AdvanceTurn(currentPlayer, result.TurnAdvanceType);
             };
 
             // Raise notification event (for UI and other observers)
             var playedData = new CardPlayedEventData
             {
-                Card = card,
+                Cards = cards,
                 PlayerID = currentPlayer,
                 FieldState = currentFieldState,
                 OnAnimationComplete = onAnimationComplete

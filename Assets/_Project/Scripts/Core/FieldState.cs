@@ -1,22 +1,57 @@
 using System.Collections.Generic;
+using System.Linq;
 using Daifugo.Data;
 
 namespace Daifugo.Core
 {
     /// <summary>
+    /// Represents a single card play (one or more cards played together)
+    /// Phase 1.5: Supports multiple cards played simultaneously
+    /// </summary>
+    public struct CardPlay
+    {
+        /// <summary>Cards played in this play</summary>
+        public readonly IReadOnlyList<CardSO> Cards;
+
+        /// <summary>Player who made this play</summary>
+        public readonly int PlayerID;
+
+        /// <summary>
+        /// Creates a new CardPlay
+        /// </summary>
+        /// <param name="cards">Cards played</param>
+        /// <param name="playerID">Player ID</param>
+        public CardPlay(List<CardSO> cards, int playerID)
+        {
+            Cards = cards ?? new List<CardSO>();
+            PlayerID = playerID;
+        }
+
+        /// <summary>Number of cards in this play</summary>
+        public int Count => Cards.Count;
+    }
+
+    /// <summary>
     /// 場の状態を表すデータ構造
     /// Phase 1: 単一カードの履歴を保持（縛りルール対応）
-    /// Phase 2以降: 複数枚出し、階段、革命状態などを追加予定
+    /// Phase 1.5: 複数枚出し、階段、革命状態を追加
     /// </summary>
     public struct FieldState
     {
         // ========== Core Data ==========
 
         /// <summary>
-        /// 場に出ている全カードの履歴（親が出してから現在まで）
+        /// 場に出されたプレイの履歴（親が出してから現在まで）
+        /// Phase 1.5: CardPlay のリストに変更
         /// イミュータブル：常に新しいListを生成
         /// </summary>
-        public readonly IReadOnlyList<CardSO> CardsInField;
+        public readonly IReadOnlyList<CardPlay> PlayHistory;
+
+        /// <summary>
+        /// 革命が発動中か（4枚出しによる永続的な強さ逆転）
+        /// ゲーム終了まで継続する
+        /// </summary>
+        public readonly bool IsRevolutionActive;
 
         /// <summary>
         /// 一時革命が発動中か（11バックによる一時的な強さ逆転）
@@ -29,52 +64,151 @@ namespace Daifugo.Core
         /// <summary>
         /// プライベートコンストラクタ（Factory Methodから呼び出し）
         /// </summary>
-        private FieldState(IReadOnlyList<CardSO> cards, bool isTemporaryRevolution)
+        private FieldState(IReadOnlyList<CardPlay> playHistory, bool isRevolutionActive, bool isTemporaryRevolution)
         {
-            CardsInField = cards ?? new List<CardSO>();
+            PlayHistory = playHistory ?? new List<CardPlay>();
+            IsRevolutionActive = isRevolutionActive;
             IsTemporaryRevolution = isTemporaryRevolution;
         }
 
         // ========== Derived Properties ==========
 
         /// <summary>場が空か</summary>
-        public bool IsEmpty => CardsInField == null || CardsInField.Count == 0;
+        public bool IsEmpty => PlayHistory == null || PlayHistory.Count == 0;
 
-        /// <summary>現在のカード（最後に出されたカード）</summary>
-        public CardSO CurrentCard => IsEmpty ? null : CardsInField[^1];
+        /// <summary>最後のプレイ（複数枚出しに対応）</summary>
+        public CardPlay? CurrentPlay => IsEmpty ? null : PlayHistory[^1];
 
-        /// <summary>場の強度（現在のカードの強度）</summary>
-        public int Strength => CurrentCard?.GetStrength() ?? 0;
+        /// <summary>現在のカード（最後に出されたカードの最後の1枚）</summary>
+        public CardSO CurrentCard
+        {
+            get
+            {
+                if (IsEmpty) return null;
+                var lastPlay = PlayHistory[^1];
+                return lastPlay.Cards.Count > 0 ? lastPlay.Cards[^1] : null;
+            }
+        }
+
+        /// <summary>場の強度（現在のカードの強度、革命を考慮）</summary>
+        public int Strength
+        {
+            get
+            {
+                if (CurrentCard == null) return 0;
+                return CurrentCard.GetStrength(GetEffectiveRevolution());
+            }
+        }
+
+        /// <summary>
+        /// Phase 1 互換性: 場に出ている全カードを単一リストとして取得
+        /// </summary>
+        public IReadOnlyList<CardSO> CardsInField
+        {
+            get
+            {
+                var allCards = new List<CardSO>();
+                foreach (var play in PlayHistory)
+                {
+                    allCards.AddRange(play.Cards);
+                }
+                return allCards;
+            }
+        }
+
+        /// <summary>
+        /// 実効的な革命状態を取得（革命 XOR 11バック）
+        /// </summary>
+        public bool GetEffectiveRevolution()
+        {
+            return IsRevolutionActive ^ IsTemporaryRevolution;
+        }
+
+        /// <summary>
+        /// 最後のプレイのパターンを取得
+        /// </summary>
+        public PlayPattern GetLastPlayPattern()
+        {
+            if (IsEmpty) return PlayPattern.Invalid;
+            var detector = new PlayPatternDetector();
+            return detector.DetectPattern(CurrentPlay.Value.Cards.ToList());
+        }
+
+        /// <summary>
+        /// 最後のプレイのカード枚数を取得
+        /// </summary>
+        public int GetLastPlayCount()
+        {
+            return CurrentPlay?.Count ?? 0;
+        }
 
         // ========== Factory Methods ==========
 
         /// <summary>
         /// 空の場を生成
         /// </summary>
-        public static FieldState Empty() => new FieldState(new List<CardSO>(), isTemporaryRevolution: false);
+        public static FieldState Empty() =>
+            new FieldState(new List<CardPlay>(), isRevolutionActive: false, isTemporaryRevolution: false);
 
         /// <summary>
-        /// 場にカードを追加（イミュータブル：新しいFieldStateを返す）
+        /// 空の場を生成（革命状態を指定）
+        /// </summary>
+        /// <param name="isRevolutionActive">革命が発動中か</param>
+        public static FieldState EmptyWithRevolution(bool isRevolutionActive) =>
+            new FieldState(new List<CardPlay>(), isRevolutionActive, isTemporaryRevolution: false);
+
+        /// <summary>
+        /// 場にカードを追加（Phase 1 互換）
+        /// イミュータブル：新しいFieldStateを返す
         /// </summary>
         /// <param name="current">現在の場の状態</param>
         /// <param name="card">追加するカード</param>
+        /// <param name="playerID">プレイヤーID</param>
         /// <param name="activates11Back">11バックルールが発動するか</param>
         /// <returns>カードが追加された新しい場の状態</returns>
-        public static FieldState AddCard(FieldState current, CardSO card, bool activates11Back = false)
+        public static FieldState AddCard(FieldState current, CardSO card, int playerID = 0, bool activates11Back = false)
         {
-            var newList = new List<CardSO>(current.CardsInField) { card };
+            // 単一カードを CardPlay として追加
+            var cards = new List<CardSO> { card };
+            var newPlay = new CardPlay(cards, playerID);
+
+            var newHistory = new List<CardPlay>(current.PlayHistory) { newPlay };
 
             // 11バック発動時は一時革命状態を反転
-            bool newRevolutionState = activates11Back ? !current.IsTemporaryRevolution : current.IsTemporaryRevolution;
+            bool newTemporaryRevolution = activates11Back ? !current.IsTemporaryRevolution : current.IsTemporaryRevolution;
 
-            return new FieldState(newList, newRevolutionState);
+            return new FieldState(newHistory, current.IsRevolutionActive, newTemporaryRevolution);
         }
 
-        // ========== Phase 2: 縛りルール ==========
+        /// <summary>
+        /// 場に複数枚のカードを追加（Phase 1.5）
+        /// イミュータブル：新しいFieldStateを返す
+        /// </summary>
+        /// <param name="current">現在の場の状態</param>
+        /// <param name="cards">追加するカードのリスト</param>
+        /// <param name="playerID">プレイヤーID</param>
+        /// <param name="activatesRevolution">革命が発動するか（4枚出し）</param>
+        /// <param name="activates11Back">11バックルールが発動するか</param>
+        /// <returns>カードが追加された新しい場の状態</returns>
+        public static FieldState AddCards(FieldState current, List<CardSO> cards, int playerID, bool activatesRevolution = false, bool activates11Back = false)
+        {
+            var newPlay = new CardPlay(cards, playerID);
+            var newHistory = new List<CardPlay>(current.PlayHistory) { newPlay };
+
+            // 革命発動時は永続的な革命状態を更新
+            bool newRevolutionActive = activatesRevolution || current.IsRevolutionActive;
+
+            // 11バック発動時は一時革命状態を反転
+            bool newTemporaryRevolution = activates11Back ? !current.IsTemporaryRevolution : current.IsTemporaryRevolution;
+
+            return new FieldState(newHistory, newRevolutionActive, newTemporaryRevolution);
+        }
+
+        // ========== Phase 1.5: 縛りルール ==========
 
         /// <summary>
         /// 縛りが発動しているか判定
-        /// 最後の2枚が同じスートの場合に縛り発動
+        /// Phase 1.5: 最後の2つのプレイの最後のカードが同じスートの場合に縛り発動
         /// ジョーカーは縛りに影響しない（スートを持たないカードとして扱う）
         /// </summary>
         /// <param name="rules">ゲームルール設定</param>
@@ -82,15 +216,21 @@ namespace Daifugo.Core
         public bool IsBindingActive(GameRulesSO rules)
         {
             if (!rules.IsBindEnabled) return false;
-            if (CardsInField.Count < 2) return false;
+            if (PlayHistory.Count < 2) return false;
 
-            CardSO lastCard = CardsInField[^1];
-            CardSO secondLastCard = CardsInField[^2];
+            // 最後の2つのプレイの最後のカードを取得
+            var lastPlay = PlayHistory[^1];
+            var secondLastPlay = PlayHistory[^2];
+
+            if (lastPlay.Cards.Count == 0 || secondLastPlay.Cards.Count == 0) return false;
+
+            CardSO lastCard = lastPlay.Cards[^1];
+            CardSO secondLastCard = secondLastPlay.Cards[^1];
 
             // Jokerは縛りに影響しない
             if (lastCard.IsJoker || secondLastCard.IsJoker) return false;
 
-            // 最後の2枚が同じスートか
+            // 最後の2つのプレイの最後のカードが同じスートか
             return lastCard.CardSuit == secondLastCard.CardSuit;
         }
 
@@ -102,18 +242,11 @@ namespace Daifugo.Core
         public CardSO.Suit? GetBindingSuit(GameRulesSO rules)
         {
             if (!IsBindingActive(rules)) return null;
-            return CardsInField[^1].CardSuit;
+
+            var lastPlay = PlayHistory[^1];
+            if (lastPlay.Cards.Count == 0) return null;
+
+            return lastPlay.Cards[^1].CardSuit;
         }
-
-        // ========== Phase 2以降で追加予定 ==========
-
-        // /// <summary>革命が発動中か（ゲーム状態から取得）</summary>
-        // public bool IsRevolutionActive { get; private set; }
-        //
-        // /// <summary>複数枚出しのパターン</summary>
-        // public PlayPattern Pattern { get; private set; }
-        //
-        // /// <summary>階段出しのパターン</summary>
-        // public bool IsSequence { get; private set; }
     }
 }

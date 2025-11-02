@@ -41,10 +41,10 @@ namespace Daifugo.AI
         [SerializeField] private IntEventChannelSO onGameEnded;
 
         [Header("Events - Raise")]
-        [Tooltip("Raised when AI wants to play a card")]
-        [SerializeField] private CardEventChannelSO onPlayCardRequested;
+        [Tooltip("Raised when AI wants to play cards (supports 1 or more cards)")]
+        [SerializeField] private ListCardEventChannelSO onPlayCardsRequested;
 
-        [Tooltip("Raised when AI wants to pass (not used in Phase 1)")]
+        [Tooltip("Raised when AI wants to pass")]
         [SerializeField] private VoidEventChannelSO onPassButtonClicked;
 
         // Runtime state (tracks field state from events)
@@ -131,6 +131,7 @@ namespace Daifugo.AI
 
         /// <summary>
         /// Executes AI turn with delay
+        /// Supports both single and multiple card decisions
         /// </summary>
         /// <param name="aiPlayerID">AI player ID (1-3)</param>
         private IEnumerator ExecuteAITurn(int aiPlayerID)
@@ -147,17 +148,30 @@ namespace Daifugo.AI
             // Get AI player's hand
             PlayerHandSO aiHand = playerHands[aiPlayerID];
 
-            // Use AI strategy to decide action
-            CardSO cardToPlay = aiStrategy.DecideAction(aiHand, currentFieldState);
+            // Try multiple card decision first
+            var multipleCards = aiStrategy.DecideMultipleCardAction(aiHand, currentFieldState);
+            if (multipleCards != null && multipleCards.Count > 0)
+            {
+                onPlayCardsRequested.RaiseEvent(multipleCards);
+                yield break;
+            }
 
-            // Raise command event based on decision
+            // If field requires multiple cards but AI has no valid combination, pass
+            if (!currentFieldState.IsEmpty && currentFieldState.GetLastPlayCount() > 1)
+            {
+                Debug.Log($"[AIController] AI Player {aiPlayerID} cannot match field requirement ({currentFieldState.GetLastPlayCount()} cards). Passing turn.");
+                onPassButtonClicked.RaiseEvent();
+                yield break;
+            }
+
+            // Single card decision (only when field is empty or requires single card)
+            CardSO cardToPlay = aiStrategy.DecideAction(aiHand, currentFieldState);
             if (cardToPlay != null)
             {
-                onPlayCardRequested.RaiseEvent(cardToPlay);
+                onPlayCardsRequested.RaiseEvent(new System.Collections.Generic.List<CardSO> { cardToPlay });
             }
             else
             {
-                // AI has no playable cards - pass turn
                 Debug.Log($"[AIController] AI Player {aiPlayerID} has no playable cards. Passing turn.");
                 onPassButtonClicked.RaiseEvent();
             }

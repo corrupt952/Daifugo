@@ -77,6 +77,20 @@
     -unity-text-align: middle-center;
 }
 
+/* Revolution Status (Phase 1.5) */
+.revolution-status {
+    font-size: var(--font-size-medium);
+    color: rgb(255, 100, 100);
+    margin-bottom: var(--spacing-small);
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    background-color: rgba(255, 0, 0, 0.2);
+    padding: var(--spacing-small);
+    border-radius: 8px;
+    border-width: 2px;
+    border-color: rgb(255, 100, 100);
+}
+
 /* Player Hand Area (Bottom) */
 .player-hand-area {
     flex-direction: column;

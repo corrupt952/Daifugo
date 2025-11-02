@@ -73,15 +73,14 @@ namespace Daifugo.Core
                 }
             }
 
-            // 強度比較：11バック（一時革命）中は強さが逆転
-            if (gameRules.Is11BackEnabled && fieldState.IsTemporaryRevolution)
-            {
-                // 11バック中：弱いカードが強いカードに勝つ
-                return card.GetStrength() < fieldState.Strength;
-            }
+            // Phase 1.5: 革命を考慮した強度比較
+            // GetEffectiveRevolution() は革命 XOR 11バックを返す
+            bool isRevolution = fieldState.GetEffectiveRevolution();
+            int cardStrength = card.GetStrength(isRevolution);
+            int fieldStrength = fieldState.Strength; // Strength プロパティは既に GetEffectiveRevolution() を使っている
 
-            // 通常の強度比較：強いカードが弱いカードに勝つ
-            return card.GetStrength() > fieldState.Strength;
+            // 強度比較：革命を考慮した強さ値同士を比較（常に > で比較）
+            return cardStrength > fieldStrength;
         }
 
         /// <summary>

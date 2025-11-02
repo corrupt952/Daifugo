@@ -5,15 +5,20 @@ namespace Daifugo.Events
 {
     /// <summary>
     /// Data structure for card played events
-    /// Contains information about the played card, player, and current field state
+    /// Contains information about the played card(s), player, and current field state
     /// </summary>
     [System.Serializable]
     public struct CardPlayedEventData
     {
         /// <summary>
-        /// The card that was played
+        /// The cards that were played (supports 1 or more cards)
         /// </summary>
-        public Data.CardSO Card;
+        public System.Collections.Generic.List<Data.CardSO> Cards;
+
+        /// <summary>
+        /// The first card that was played (Phase 1 compatibility)
+        /// </summary>
+        public Data.CardSO Card => Cards != null && Cards.Count > 0 ? Cards[0] : null;
 
         /// <summary>
         /// ID of the player who played the card (0-3)

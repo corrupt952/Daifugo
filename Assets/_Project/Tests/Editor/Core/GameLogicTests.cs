@@ -868,5 +868,364 @@ namespace Daifugo.Tests.Core
         }
 
         #endregion
+
+        #region Phase 1.5: PlayCards Tests
+
+        /// <summary>
+        /// Test: PlayCards with pair succeeds
+        /// </summary>
+        [Test]
+        public void PlayCards_Pair_Success()
+        {
+            // Arrange
+            CardSO card5Spade = TestHelpers.CreateCard(CardSO.Suit.Spade, 5);
+            CardSO card5Heart = TestHelpers.CreateCard(CardSO.Suit.Heart, 5);
+            PlayerHandSO hand = TestHelpers.CreateHand(0, card5Spade, card5Heart);
+            FieldState field = FieldState.Empty();
+
+            var cards = new System.Collections.Generic.List<CardSO> { card5Spade, card5Heart };
+
+            // Act
+            CardPlayResult result = gameLogic.PlayCards(cards, hand, field);
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess, "Pair should be playable");
+            Assert.AreEqual(0, hand.CardCount, "Cards should be removed from hand");
+            Assert.AreEqual(1, result.NewFieldState.PlayHistory.Count, "Should create 1 play history entry");
+            Assert.AreEqual(2, result.NewFieldState.GetLastPlayCount(), "Last play should have 2 cards");
+        }
+
+        /// <summary>
+        /// Test: PlayCards with quadruple activates revolution
+        /// </summary>
+        [Test]
+        public void PlayCards_Quadruple_ActivatesRevolution()
+        {
+            // Arrange
+            GameRulesSO rules = TestHelpers.CreateGameRules(enableRevolution: true);
+            GameLogic logic = new GameLogic(rules);
+
+            var cards = new System.Collections.Generic.List<CardSO>
+            {
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Diamond, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Club, 5)
+            };
+            PlayerHandSO hand = TestHelpers.CreateHand(0, cards[0], cards[1], cards[2], cards[3]);
+            FieldState field = FieldState.Empty();
+
+            // Act
+            CardPlayResult result = logic.PlayCards(cards, hand, field);
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess, "Quadruple should be playable");
+            Assert.IsTrue(result.ShouldActivateRevolution, "Quadruple should activate revolution");
+            Assert.IsTrue(result.NewFieldState.IsRevolutionActive, "Field should have revolution active");
+        }
+
+        /// <summary>
+        /// Test: PlayCards with 8-cut (pair of 8s) resets field
+        /// </summary>
+        [Test]
+        public void PlayCards_Pair8Cut_ResetsField()
+        {
+            // Arrange
+            var cards = new System.Collections.Generic.List<CardSO>
+            {
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 8),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 8)
+            };
+            PlayerHandSO hand = TestHelpers.CreateHand(0, cards[0], cards[1]);
+            FieldState field = FieldState.Empty();
+
+            // Act
+            CardPlayResult result = gameLogic.PlayCards(cards, hand, field);
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess, "Pair of 8s should be playable");
+            Assert.IsTrue(result.ShouldResetField, "8-cut should activate");
+        }
+
+        /// <summary>
+        /// Test: PlayCards with sequence succeeds
+        /// </summary>
+        [Test]
+        public void PlayCards_Sequence_Success()
+        {
+            // Arrange
+            var cards = new System.Collections.Generic.List<CardSO>
+            {
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 3),
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 4),
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 5)
+            };
+            PlayerHandSO hand = TestHelpers.CreateHand(0, cards[0], cards[1], cards[2]);
+            FieldState field = FieldState.Empty();
+
+            // Act
+            CardPlayResult result = gameLogic.PlayCards(cards, hand, field);
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess, "Sequence should be playable");
+            Assert.AreEqual(PlayPattern.Sequence, result.NewFieldState.GetLastPlayPattern(), "Should be detected as sequence");
+        }
+
+        /// <summary>
+        /// Test: PlayCards with invalid pattern fails
+        /// </summary>
+        [Test]
+        public void PlayCards_InvalidPattern_Fails()
+        {
+            // Arrange: Different ranks, not a sequence
+            var cards = new System.Collections.Generic.List<CardSO>
+            {
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 7)
+            };
+            PlayerHandSO hand = TestHelpers.CreateHand(0, cards[0], cards[1]);
+            FieldState field = FieldState.Empty();
+
+            // Act
+            CardPlayResult result = gameLogic.PlayCards(cards, hand, field);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess, "Invalid pattern should fail");
+            Assert.AreEqual(2, hand.CardCount, "Cards should remain in hand");
+        }
+
+        /// <summary>
+        /// Test: PlayCards on non-empty field with same count succeeds
+        /// </summary>
+        [Test]
+        public void PlayCards_PairOnPair_Success()
+        {
+            // Arrange: Field has pair of 3s
+            var fieldCards = new System.Collections.Generic.List<CardSO>
+            {
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 3),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 3)
+            };
+            FieldState field = FieldState.AddCards(FieldState.Empty(), fieldCards, playerID: 0);
+
+            // Player has pair of 5s (stronger)
+            var cards = new System.Collections.Generic.List<CardSO>
+            {
+                TestHelpers.CreateCard(CardSO.Suit.Diamond, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Club, 5)
+            };
+            PlayerHandSO hand = TestHelpers.CreateHand(1, cards[0], cards[1]);
+
+            // Act
+            CardPlayResult result = gameLogic.PlayCards(cards, hand, field);
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess, "Pair of 5s should beat pair of 3s");
+        }
+
+        /// <summary>
+        /// Test: PlayCards on field with different count fails
+        /// </summary>
+        [Test]
+        public void PlayCards_PairOnTriple_Fails()
+        {
+            // Arrange: Field has triple of 3s
+            var fieldCards = new System.Collections.Generic.List<CardSO>
+            {
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 3),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 3),
+                TestHelpers.CreateCard(CardSO.Suit.Diamond, 3)
+            };
+            FieldState field = FieldState.AddCards(FieldState.Empty(), fieldCards, playerID: 0);
+
+            // Player has pair of 5s
+            var cards = new System.Collections.Generic.List<CardSO>
+            {
+                TestHelpers.CreateCard(CardSO.Suit.Club, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 5)
+            };
+            PlayerHandSO hand = TestHelpers.CreateHand(1, cards[0], cards[1]);
+
+            // Act
+            CardPlayResult result = gameLogic.PlayCards(cards, hand, field);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess, "Pair cannot be played on triple (different count)");
+        }
+
+        /// <summary>
+        /// Test: PlayCards with forbidden finish card loses
+        /// </summary>
+        [Test]
+        public void PlayCards_ForbiddenFinish_Loses()
+        {
+            // Arrange: Hand with only pair of 2s (forbidden card)
+            var cards = new System.Collections.Generic.List<CardSO>
+            {
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 2),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 2)
+            };
+            PlayerHandSO hand = TestHelpers.CreateHand(0, cards[0], cards[1]);
+            FieldState field = FieldState.Empty();
+            GameRulesSO rules = TestHelpers.CreateGameRules(enableForbiddenFinish: true);
+            GameLogic logic = new GameLogic(rules);
+
+            // Act
+            CardPlayResult result = logic.PlayCards(cards, hand, field);
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess, "Play should succeed");
+            Assert.IsTrue(result.IsWin, "Hand should be empty (win condition)");
+            Assert.IsTrue(result.IsForbiddenFinish, "Should be forbidden finish (contains 2)");
+            Assert.AreEqual(TurnAdvanceType.GameEnd, result.TurnAdvanceType, "Game should end");
+        }
+
+        /// <summary>
+        /// Test: PlayCards with 11-back activates temporary revolution
+        /// </summary>
+        [Test]
+        public void PlayCards_PairWith11Back_ActivatesTemporaryRevolution()
+        {
+            // Arrange: Pair of Jacks
+            GameRulesSO rules = TestHelpers.CreateGameRules(enable11Back: true);
+            GameLogic logic = new GameLogic(rules);
+
+            var cards = new System.Collections.Generic.List<CardSO>
+            {
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 11),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 11)
+            };
+            PlayerHandSO hand = TestHelpers.CreateHand(0, cards[0], cards[1]);
+            FieldState field = FieldState.Empty();
+
+            // Act
+            CardPlayResult result = logic.PlayCards(cards, hand, field);
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess, "Pair of Jacks should be playable");
+            Assert.IsTrue(result.ShouldActivate11Back, "11-back should activate");
+            Assert.IsTrue(result.NewFieldState.IsTemporaryRevolution, "Temporary revolution should be active");
+        }
+
+        #endregion
+
+        #region Validation Tests - Field State Enforcement
+
+        /// <summary>
+        /// Test: Field with pair requires exactly 2 cards, not 1
+        /// User reported bug: "複数枚出しても数字が勝ってれば1枚だけで出せる"
+        /// </summary>
+        [Test]
+        public void PlayCards_FieldIsPair_CannotPlaySingleCard()
+        {
+            // Arrange: Field has pair of 3s
+            var fieldCards = new System.Collections.Generic.List<CardSO>
+            {
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 3),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 3)
+            };
+            FieldState field = FieldState.AddCards(FieldState.Empty(), fieldCards, playerID: 0);
+
+            CardSO card5 = TestHelpers.CreateCard(CardSO.Suit.Diamond, 5);
+            var hand = TestHelpers.CreateHand(1, card5);
+            var singleCard = new System.Collections.Generic.List<CardSO> { card5 };
+
+            // Act
+            CardPlayResult result = gameLogic.PlayCards(singleCard, hand, field);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess, "Should not allow single card when field requires pair");
+            Assert.AreEqual("Cannot play these cards on current field", result.ErrorMessage);
+        }
+
+        /// <summary>
+        /// Test: Field requires same count for sequences
+        /// </summary>
+        [Test]
+        public void PlayCards_FieldIsSequence3_CannotPlaySequence4()
+        {
+            // Arrange: Field has 3-card sequence
+            var fieldCards = new System.Collections.Generic.List<CardSO>
+            {
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 3),
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 4),
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 5)
+            };
+            FieldState field = FieldState.AddCards(FieldState.Empty(), fieldCards, playerID: 0);
+
+            var hand = TestHelpers.CreateHand(1,
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 6),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 7),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 8),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 9)
+            );
+            var sequence4 = new System.Collections.Generic.List<CardSO>
+            {
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 6),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 7),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 8),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 9)
+            };
+
+            // Act
+            CardPlayResult result = gameLogic.PlayCards(sequence4, hand, field);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess, "Should not allow 4-card sequence when field requires 3-card sequence");
+        }
+
+        /// <summary>
+        /// Test: FieldState stores all cards from pair play
+        /// User reported: "場に出ているデータがちゃんと複数リストのようなかたちになっているか？"
+        /// </summary>
+        [Test]
+        public void PlayCards_Pair_FieldStateStoresBothCards()
+        {
+            // Arrange
+            CardSO card5Spade = TestHelpers.CreateCard(CardSO.Suit.Spade, 5);
+            CardSO card5Heart = TestHelpers.CreateCard(CardSO.Suit.Heart, 5);
+            var hand = TestHelpers.CreateHand(1, card5Spade, card5Heart);
+            var pair = new System.Collections.Generic.List<CardSO> { card5Spade, card5Heart };
+
+            // Act
+            CardPlayResult result = gameLogic.PlayCards(pair, hand, FieldState.Empty());
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess, "Pair should be playable");
+            Assert.IsNotNull(result.NewFieldState.CurrentPlay, "CurrentPlay should not be null");
+            Assert.AreEqual(2, result.NewFieldState.CurrentPlay.Value.Cards.Count, "Field should store both cards");
+            Assert.AreEqual(CardSO.Suit.Spade, result.NewFieldState.CurrentPlay.Value.Cards[0].CardSuit);
+            Assert.AreEqual(CardSO.Suit.Heart, result.NewFieldState.CurrentPlay.Value.Cards[1].CardSuit);
+            Assert.AreEqual(5, result.NewFieldState.CurrentPlay.Value.Cards[0].Rank);
+            Assert.AreEqual(5, result.NewFieldState.CurrentPlay.Value.Cards[1].Rank);
+        }
+
+        /// <summary>
+        /// Test: Weak pair cannot beat strong pair
+        /// </summary>
+        [Test]
+        public void PlayCards_WeakPairOnStrongPair_Fails()
+        {
+            // Arrange: Field has pair of 7s
+            var fieldCards = new System.Collections.Generic.List<CardSO>
+            {
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 7),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 7)
+            };
+            FieldState field = FieldState.AddCards(FieldState.Empty(), fieldCards, playerID: 0);
+
+            CardSO card5Spade = TestHelpers.CreateCard(CardSO.Suit.Spade, 5);
+            CardSO card5Heart = TestHelpers.CreateCard(CardSO.Suit.Heart, 5);
+            var hand = TestHelpers.CreateHand(1, card5Spade, card5Heart);
+            var weakPair = new System.Collections.Generic.List<CardSO> { card5Spade, card5Heart };
+
+            // Act
+            CardPlayResult result = gameLogic.PlayCards(weakPair, hand, field);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess, "Weak pair should not beat strong pair");
+        }
+
+        #endregion
     }
 }

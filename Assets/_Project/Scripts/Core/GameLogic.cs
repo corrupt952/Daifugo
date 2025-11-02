@@ -1,3 +1,4 @@
+using System.Linq;
 using Daifugo.Data;
 
 namespace Daifugo.Core
@@ -35,6 +36,7 @@ namespace Daifugo.Core
     public class GameLogic
     {
         private readonly PlayableCardsCalculator calculator;
+        private readonly PlayPatternDetector patternDetector;
         private readonly GameRulesSO gameRules;
 
         /// <summary>
@@ -44,6 +46,7 @@ namespace Daifugo.Core
         public GameLogic(GameRulesSO gameRules)
         {
             calculator = new PlayableCardsCalculator();
+            patternDetector = new PlayPatternDetector();
             this.gameRules = gameRules;
         }
 
@@ -171,6 +174,169 @@ namespace Daifugo.Core
 
             return false;
         }
+
+        // ========== Phase 1.5: Multiple Cards Play ==========
+
+        /// <summary>
+        /// Executes multiple cards play logic with validation and special rules
+        /// Phase 1.5: Supports pairs, triples, quadruples, and sequences
+        /// </summary>
+        /// <param name="cards">Cards to play</param>
+        /// <param name="hand">Player's hand (will be modified)</param>
+        /// <param name="currentFieldState">Current field state</param>
+        /// <returns>Result of the play</returns>
+        public CardPlayResult PlayCards(System.Collections.Generic.List<CardSO> cards, PlayerHandSO hand, FieldState currentFieldState)
+        {
+            // Validate: Non-null, non-empty
+            if (cards == null || cards.Count == 0)
+                return CardPlayResult.Fail("Cannot play empty cards");
+
+            // Validate: All cards in hand
+            foreach (var card in cards)
+            {
+                if (!calculator.IsCardInHand(card, hand))
+                    return CardPlayResult.Fail("Cannot play card not in hand");
+            }
+
+            // Validate: Pattern detection
+            PlayPattern pattern = patternDetector.DetectPattern(cards);
+            if (pattern == PlayPattern.Invalid)
+                return CardPlayResult.Fail("Invalid card combination");
+
+            // Validate: Can play on current field
+            if (!CanPlayCards(cards, currentFieldState))
+                return CardPlayResult.Fail("Cannot play these cards on current field");
+
+            // Execute: Remove cards from hand
+            foreach (var card in cards)
+            {
+                hand.RemoveCard(card);
+            }
+
+            // Check special rules
+            bool shouldResetField = CheckSpecialRules_8Cut(cards);
+            bool shouldActivate11Back = CheckSpecialRules_11Back(cards);
+            bool shouldActivateRevolution = (pattern == PlayPattern.Quadruple) && gameRules.IsRevolutionEnabled;
+
+            // Update field state with new cards
+            FieldState newFieldState = FieldState.AddCards(
+                currentFieldState,
+                cards,
+                playerID: 0,  // TODO: Pass actual player ID in Phase 2
+                activatesRevolution: shouldActivateRevolution,
+                activates11Back: shouldActivate11Back
+            );
+
+            // Check win condition
+            bool isWin = hand.IsEmpty;
+
+            // Check forbidden finish (禁止上がり)
+            bool isForbiddenFinish = isWin && CheckForbiddenFinish(cards);
+
+            return CardPlayResult.Success(
+                newFieldState: newFieldState,
+                isWin: isWin,
+                shouldResetField: shouldResetField,
+                shouldActivate11Back: shouldActivate11Back,
+                shouldActivateRevolution: shouldActivateRevolution,
+                isForbiddenFinish: isForbiddenFinish
+            );
+        }
+
+        /// <summary>
+        /// Checks if multiple cards can be played on current field
+        /// </summary>
+        private bool CanPlayCards(System.Collections.Generic.List<CardSO> cards, FieldState fieldState)
+        {
+            // Empty field: any valid pattern can be played
+            if (fieldState.IsEmpty)
+                return true;
+
+            // Get pattern of cards to play
+            PlayPattern playPattern = patternDetector.DetectPattern(cards);
+            if (playPattern == PlayPattern.Invalid)
+                return false;
+
+            // Get last play pattern and count
+            PlayPattern lastPattern = fieldState.GetLastPlayPattern();
+            int lastCount = fieldState.GetLastPlayCount();
+
+            // Card count must match (except for empty field)
+            if (cards.Count != lastCount)
+                return false;
+
+            // Pattern must match (Single/Pair/Triple/Quadruple/Sequence)
+            if (playPattern != lastPattern)
+                return false;
+
+            // Strength comparison based on pattern
+            return CompareMultipleCardStrength(cards, fieldState, playPattern);
+        }
+
+        /// <summary>
+        /// Compares strength of multiple cards play
+        /// </summary>
+        private bool CompareMultipleCardStrength(System.Collections.Generic.List<CardSO> cards, FieldState fieldState, PlayPattern pattern)
+        {
+            bool isRevolution = fieldState.GetEffectiveRevolution();
+
+            if (pattern == PlayPattern.Sequence)
+            {
+                // Sequence: Compare by max (normal) or min (revolution) card
+                int playStrength = patternDetector.GetSequenceStrength(cards, isRevolution);
+                int fieldStrength = patternDetector.GetSequenceStrength(fieldState.CurrentPlay.Value.Cards.ToList(), isRevolution);
+                return playStrength > fieldStrength;
+            }
+            else
+            {
+                // Same rank (Pair/Triple/Quadruple): Compare by single card strength
+                // All cards have same rank, so just compare first card
+                int playStrength = cards[0].GetStrength(isRevolution);
+                int fieldStrength = fieldState.Strength;
+                return playStrength > fieldStrength;
+            }
+        }
+
+        /// <summary>
+        /// Checks 8-cut rule for multiple cards
+        /// </summary>
+        private bool CheckSpecialRules_8Cut(System.Collections.Generic.List<CardSO> cards)
+        {
+            if (!gameRules.Is8CutEnabled) return false;
+
+            // 8-cut: Any card with rank 8 triggers field reset
+            return cards.Any(c => !c.IsJoker && c.Rank == 8);
+        }
+
+        /// <summary>
+        /// Checks 11-back rule for multiple cards
+        /// </summary>
+        private bool CheckSpecialRules_11Back(System.Collections.Generic.List<CardSO> cards)
+        {
+            if (!gameRules.Is11BackEnabled) return false;
+
+            // 11-back: Any card with rank 11 (J) triggers temporary revolution
+            return cards.Any(c => !c.IsJoker && c.Rank == 11);
+        }
+
+        /// <summary>
+        /// Checks forbidden finish for multiple cards
+        /// </summary>
+        private bool CheckForbiddenFinish(System.Collections.Generic.List<CardSO> cards)
+        {
+            if (!gameRules.IsForbiddenFinishEnabled) return false;
+
+            // Forbidden finish: Any forbidden card in the combination
+            foreach (var card in cards)
+            {
+                if (card.IsJoker) return true;
+                if (card.Rank == 2) return true;
+                if (card.Rank == 8) return true;
+                if (card.CardSuit == CardSO.Suit.Spade && card.Rank == 3) return true;
+            }
+
+            return false;
+        }
     }
 
     /// <summary>
@@ -197,6 +363,12 @@ namespace Daifugo.Core
         /// Whether 11-back rule is activated (J card triggers temporary revolution)
         /// </summary>
         public bool ShouldActivate11Back { get; private set; }
+
+        /// <summary>
+        /// Whether revolution rule is activated (4 cards of same rank triggers permanent revolution)
+        /// Phase 1.5: 4枚出しで革命発動
+        /// </summary>
+        public bool ShouldActivateRevolution { get; private set; }
 
         /// <summary>
         /// Whether this is a forbidden finish (player loses instead of wins)
@@ -231,7 +403,13 @@ namespace Daifugo.Core
         /// <summary>
         /// Creates a successful result
         /// </summary>
-        public static CardPlayResult Success(FieldState newFieldState, bool isWin, bool shouldResetField, bool shouldActivate11Back = false, bool isForbiddenFinish = false)
+        public static CardPlayResult Success(
+            FieldState newFieldState,
+            bool isWin,
+            bool shouldResetField,
+            bool shouldActivate11Back = false,
+            bool shouldActivateRevolution = false,
+            bool isForbiddenFinish = false)
         {
             return new CardPlayResult
             {
@@ -239,6 +417,7 @@ namespace Daifugo.Core
                 IsWin = isWin,
                 ShouldResetField = shouldResetField,
                 ShouldActivate11Back = shouldActivate11Back,
+                ShouldActivateRevolution = shouldActivateRevolution,
                 IsForbiddenFinish = isForbiddenFinish,
                 NewFieldState = newFieldState,
                 ErrorMessage = null
@@ -256,6 +435,7 @@ namespace Daifugo.Core
                 IsWin = false,
                 ShouldResetField = false,
                 ShouldActivate11Back = false,
+                ShouldActivateRevolution = false,
                 IsForbiddenFinish = false,
                 NewFieldState = FieldState.Empty(),
                 ErrorMessage = errorMessage

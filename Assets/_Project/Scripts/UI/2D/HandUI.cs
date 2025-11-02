@@ -16,7 +16,7 @@ namespace Daifugo.UI
         private readonly VisualElement handContainer;
         private readonly PlayerHandSO handData;
         private readonly List<CardUI> cardUIElements = new();
-        private CardUI selectedCard = null; // Phase 1: Single card selection only
+        private readonly List<CardUI> selectedCards = new(); // Phase 1.5: Multiple card selection
         private List<CardSO> playableCards = new();
 
         /// <summary>
@@ -114,7 +114,7 @@ namespace Daifugo.UI
 
         /// <summary>
         /// Handles card click event
-        /// Phase 1: Single card selection only, must be playable
+        /// Phase 1.5: Multiple card selection, only playable cards can be selected
         /// </summary>
         private void OnCardClicked(CardUI cardUI)
         {
@@ -125,49 +125,42 @@ namespace Daifugo.UI
             }
 
             // Toggle selection
-            if (selectedCard == cardUI)
+            if (selectedCards.Contains(cardUI))
             {
-                // Deselect current card
-                selectedCard.SetSelected(false);
-                selectedCard = null;
+                // Deselect card
+                cardUI.SetSelected(false);
+                selectedCards.Remove(cardUI);
                 OnSelectionChanged?.Invoke();
             }
             else
             {
-                // Deselect previous card if any
-                if (selectedCard != null)
-                {
-                    selectedCard.SetSelected(false);
-                }
-
-                // Select new card
-                selectedCard = cardUI;
-                selectedCard.SetSelected(true);
+                // Select card
+                cardUI.SetSelected(true);
+                selectedCards.Add(cardUI);
                 OnSelectionChanged?.Invoke();
             }
         }
 
         /// <summary>
-        /// Gets currently selected cards (Phase 1: Returns list with 1 or 0 cards)
+        /// Gets currently selected cards (Phase 1.5: Returns list of all selected cards)
         /// </summary>
         public List<CardSO> GetSelectedCards()
         {
-            if (selectedCard != null)
-            {
-                return new List<CardSO> { selectedCard.CardData };
-            }
-            return new List<CardSO>();
+            return selectedCards.Select(cardUI => cardUI.CardData).ToList();
         }
 
         /// <summary>
-        /// Clears card selection
+        /// Clears card selection (Phase 1.5: Clears all selected cards)
         /// </summary>
         public void ClearSelection()
         {
-            if (selectedCard != null)
+            if (selectedCards.Count > 0)
             {
-                selectedCard.SetSelected(false);
-                selectedCard = null;
+                foreach (var cardUI in selectedCards)
+                {
+                    cardUI.SetSelected(false);
+                }
+                selectedCards.Clear();
                 OnSelectionChanged?.Invoke();
             }
         }

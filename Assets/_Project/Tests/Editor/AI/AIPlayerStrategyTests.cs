@@ -265,5 +265,184 @@ namespace Daifugo.Tests.AI
         }
 
         #endregion
+
+        #region Phase 1.5: Multiple Cards Decision Tests
+
+        /// <summary>
+        /// Test: AI decides to play pair when field requires pair
+        /// </summary>
+        [Test]
+        public void DecideMultipleCardAction_FieldIsPair_PlaysPair()
+        {
+            // Arrange: AI has multiple pairs
+            var hand = TestHelpers.CreateHand(1,
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Diamond, 7),
+                TestHelpers.CreateCard(CardSO.Suit.Club, 7)
+            );
+
+            // Field has pair of 3s
+            var fieldCards = new System.Collections.Generic.List<CardSO>
+            {
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 3),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 3)
+            };
+            FieldState field = FieldState.AddCards(FieldState.Empty(), fieldCards, playerID: 0);
+
+            // Act
+            var result = strategy.DecideMultipleCardAction(hand, field);
+
+            // Assert
+            Assert.IsNotNull(result, "AI should decide to play cards");
+            Assert.AreEqual(2, result.Count, "AI should play pair");
+            Assert.AreEqual(5, result[0].Rank, "AI should play weakest pair (5s, not 7s)");
+            Assert.AreEqual(5, result[1].Rank, "AI should play weakest pair (5s, not 7s)");
+        }
+
+        /// <summary>
+        /// Test: AI avoids playing quadruple (revolution)
+        /// </summary>
+        [Test]
+        public void DecideMultipleCardAction_Has4OfAKind_DoesNotPlayQuadruple()
+        {
+            // Arrange: AI has 4 of a kind but field requires pair
+            var hand = TestHelpers.CreateHand(1,
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Diamond, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Club, 5)
+            );
+
+            // Field has pair of 3s
+            var fieldCards = new System.Collections.Generic.List<CardSO>
+            {
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 3),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 3)
+            };
+            FieldState field = FieldState.AddCards(FieldState.Empty(), fieldCards, playerID: 0);
+
+            // Act
+            var result = strategy.DecideMultipleCardAction(hand, field);
+
+            // Assert
+            Assert.IsNotNull(result, "AI should play pair from 4 of a kind");
+            Assert.AreEqual(2, result.Count, "AI should only play pair, not quadruple");
+        }
+
+        /// <summary>
+        /// Test: AI plays weakest pair from multiple options
+        /// </summary>
+        [Test]
+        public void DecideMultipleCardAction_MultiplePairs_PlaysWeakest()
+        {
+            // Arrange: AI has three pairs
+            var hand = TestHelpers.CreateHand(1,
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 4),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 4),
+                TestHelpers.CreateCard(CardSO.Suit.Diamond, 6),
+                TestHelpers.CreateCard(CardSO.Suit.Club, 6),
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 9),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 9)
+            );
+
+            FieldState field = FieldState.Empty();
+
+            // Act
+            var result = strategy.DecideMultipleCardAction(hand, field);
+
+            // Assert
+            Assert.IsNull(result, "AI should pass on empty field (single card strategy in Phase 1.5)");
+        }
+
+        /// <summary>
+        /// Test: AI returns null when no playable pairs
+        /// </summary>
+        [Test]
+        public void DecideMultipleCardAction_NoPlayablePairs_ReturnsNull()
+        {
+            // Arrange: AI has pair of 3s, field has pair of 10s
+            var hand = TestHelpers.CreateHand(1,
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 3),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 3)
+            );
+
+            var fieldCards = new System.Collections.Generic.List<CardSO>
+            {
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 10),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 10)
+            };
+            FieldState field = FieldState.AddCards(FieldState.Empty(), fieldCards, playerID: 0);
+
+            // Act
+            var result = strategy.DecideMultipleCardAction(hand, field);
+
+            // Assert
+            Assert.IsNull(result, "AI should pass when pair is too weak");
+        }
+
+        /// <summary>
+        /// Test: AI plays triple when field requires triple
+        /// </summary>
+        [Test]
+        public void DecideMultipleCardAction_FieldIsTriple_PlaysTriple()
+        {
+            // Arrange: AI has triple of 5s
+            var hand = TestHelpers.CreateHand(1,
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Diamond, 5)
+            );
+
+            // Field has triple of 3s
+            var fieldCards = new System.Collections.Generic.List<CardSO>
+            {
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 3),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 3),
+                TestHelpers.CreateCard(CardSO.Suit.Club, 3)
+            };
+            FieldState field = FieldState.AddCards(FieldState.Empty(), fieldCards, playerID: 0);
+
+            // Act
+            var result = strategy.DecideMultipleCardAction(hand, field);
+
+            // Assert
+            Assert.IsNotNull(result, "AI should play triple");
+            Assert.AreEqual(3, result.Count, "AI should play 3 cards");
+            Assert.AreEqual(5, result[0].Rank, "All cards should be rank 5");
+        }
+
+        /// <summary>
+        /// Test: AI plays sequence when field requires sequence
+        /// </summary>
+        [Test]
+        public void DecideMultipleCardAction_FieldIsSequence_PlaysSequence()
+        {
+            // Arrange: AI has 5-6-7 sequence
+            var hand = TestHelpers.CreateHand(1,
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 6),
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 7)
+            );
+
+            // Field has 3-4-5 sequence
+            var fieldCards = new System.Collections.Generic.List<CardSO>
+            {
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 3),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 4),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 5)
+            };
+            FieldState field = FieldState.AddCards(FieldState.Empty(), fieldCards, playerID: 0);
+
+            // Act
+            var result = strategy.DecideMultipleCardAction(hand, field);
+
+            // Assert
+            Assert.IsNotNull(result, "AI should play sequence");
+            Assert.AreEqual(3, result.Count, "AI should play 3 cards");
+            Assert.AreEqual(PlayPattern.Sequence, new PlayPatternDetector().DetectPattern(result), "Should be a valid sequence");
+        }
+
+        #endregion
     }
 }
