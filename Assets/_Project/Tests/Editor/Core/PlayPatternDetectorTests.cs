@@ -206,6 +206,279 @@ namespace Daifugo.Tests.Core
             Assert.IsFalse(isSequence);
         }
 
+        // ========== Joker in Pairs/Triples/Quadruples (Expected to work) ==========
+
+        [Test]
+        public void DetectPattern_JokerPair_ReturnsPair()
+        {
+            // Arrange: Joker + Joker should form a pair
+            var cards = new List<CardSO>
+            {
+                TestHelpers.CreateJoker(isRed: true),
+                TestHelpers.CreateJoker(isRed: false)
+            };
+
+            // Act
+            PlayPattern pattern = detector.DetectPattern(cards);
+
+            // Assert
+            Assert.AreEqual(PlayPattern.Pair, pattern, "Joker + Joker should form a pair");
+        }
+
+        [Test]
+        public void DetectPattern_JokerAsWildcardPair_ReturnsPair()
+        {
+            // Arrange: Joker + normal card should form a pair (Joker as wildcard)
+            var cards = new List<CardSO>
+            {
+                TestHelpers.CreateJoker(isRed: true),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 5)
+            };
+
+            // Act
+            PlayPattern pattern = detector.DetectPattern(cards);
+
+            // Assert
+            Assert.AreEqual(PlayPattern.Pair, pattern, "Joker + 5 should form a pair (wildcard)");
+        }
+
+        [Test]
+        public void DetectPattern_JokerAsWildcardTriple_ReturnsTriple()
+        {
+            // Arrange: Joker + two normal cards should form a triple (Joker as wildcard)
+            var cards = new List<CardSO>
+            {
+                TestHelpers.CreateJoker(isRed: true),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Diamond, 5)
+            };
+
+            // Act
+            PlayPattern pattern = detector.DetectPattern(cards);
+
+            // Assert
+            Assert.AreEqual(PlayPattern.Triple, pattern, "Joker + 5 + 5 should form a triple (wildcard)");
+        }
+
+        [Test]
+        public void DetectPattern_TwoJokersAsWildcardQuadruple_ReturnsQuadruple()
+        {
+            // Arrange: 2 Jokers + two normal cards should form a quadruple (Jokers as wildcard)
+            var cards = new List<CardSO>
+            {
+                TestHelpers.CreateJoker(isRed: true),
+                TestHelpers.CreateJoker(isRed: false),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Diamond, 5)
+            };
+
+            // Act
+            PlayPattern pattern = detector.DetectPattern(cards);
+
+            // Assert
+            Assert.AreEqual(PlayPattern.Quadruple, pattern, "2 Jokers + 5 + 5 should form a quadruple (wildcard)");
+        }
+
+        [Test]
+        public void DetectPattern_JokerWithDifferentRanks_ReturnsInvalid()
+        {
+            // Arrange: Joker + two different rank cards cannot form valid pattern
+            var cards = new List<CardSO>
+            {
+                TestHelpers.CreateJoker(isRed: true),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Diamond, 7)
+            };
+
+            // Act
+            PlayPattern pattern = detector.DetectPattern(cards);
+
+            // Assert
+            Assert.AreEqual(PlayPattern.Invalid, pattern, "Joker + 5 + 7 should be invalid (different ranks)");
+        }
+
+        [Test]
+        public void DetectPattern_AllJokersTriple_ReturnsTriple()
+        {
+            // Arrange: 3 Jokers should form a triple (edge case: all wildcards)
+            // Note: In actual game, only 2 Jokers exist, but test the logic
+            var cards = new List<CardSO>
+            {
+                TestHelpers.CreateJoker(isRed: true),
+                TestHelpers.CreateJoker(isRed: false),
+                TestHelpers.CreateJoker(isRed: true)  // Simulating 3rd Joker for testing
+            };
+
+            // Act
+            PlayPattern pattern = detector.DetectPattern(cards);
+
+            // Assert
+            Assert.AreEqual(PlayPattern.Triple, pattern, "3 Jokers should form a triple");
+        }
+
+        [Test]
+        public void DetectPattern_JokerWithSingleNormalCard_AndTwoMoreDifferent_ReturnsInvalid()
+        {
+            // Arrange: Joker + 5 + 7 + 7 (Joker could match 5 or 7, but not both)
+            var cards = new List<CardSO>
+            {
+                TestHelpers.CreateJoker(isRed: true),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Diamond, 7),
+                TestHelpers.CreateCard(CardSO.Suit.Club, 7)
+            };
+
+            // Act
+            PlayPattern pattern = detector.DetectPattern(cards);
+
+            // Assert
+            Assert.AreEqual(PlayPattern.Invalid, pattern, "Joker + 5 + 7 + 7 should be invalid (mixed ranks)");
+        }
+
+        [Test]
+        public void DetectPattern_ThreeJokersWithOneNormalCard_ReturnsQuadruple()
+        {
+            // Arrange: 3 Jokers + 5 should form a quadruple (all Jokers match the 5)
+            var cards = new List<CardSO>
+            {
+                TestHelpers.CreateJoker(isRed: true),
+                TestHelpers.CreateJoker(isRed: false),
+                TestHelpers.CreateJoker(isRed: true),  // 3rd Joker
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 5)
+            };
+
+            // Act
+            PlayPattern pattern = detector.DetectPattern(cards);
+
+            // Assert
+            Assert.AreEqual(PlayPattern.Quadruple, pattern, "3 Jokers + 5 should form a quadruple");
+        }
+
+        [Test]
+        public void DetectPattern_JokerWith2_ReturnsPair()
+        {
+            // Arrange: Joker + 2 (strongest normal card) should form a pair
+            var cards = new List<CardSO>
+            {
+                TestHelpers.CreateJoker(isRed: true),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 2)
+            };
+
+            // Act
+            PlayPattern pattern = detector.DetectPattern(cards);
+
+            // Assert
+            Assert.AreEqual(PlayPattern.Pair, pattern, "Joker + 2 should form a pair");
+        }
+
+        [Test]
+        public void DetectPattern_JokerWithAce_ReturnsPair()
+        {
+            // Arrange: Joker + Ace should form a pair
+            var cards = new List<CardSO>
+            {
+                TestHelpers.CreateJoker(isRed: true),
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 1)
+            };
+
+            // Act
+            PlayPattern pattern = detector.DetectPattern(cards);
+
+            // Assert
+            Assert.AreEqual(PlayPattern.Pair, pattern, "Joker + A should form a pair");
+        }
+
+        [Test]
+        public void DetectPattern_JokerWith8_ReturnsPair()
+        {
+            // Arrange: Joker + 8 (8-cut card) should form a pair
+            var cards = new List<CardSO>
+            {
+                TestHelpers.CreateJoker(isRed: true),
+                TestHelpers.CreateCard(CardSO.Suit.Diamond, 8)
+            };
+
+            // Act
+            PlayPattern pattern = detector.DetectPattern(cards);
+
+            // Assert
+            Assert.AreEqual(PlayPattern.Pair, pattern, "Joker + 8 should form a pair");
+        }
+
+        [Test]
+        public void DetectPattern_JokerWithSpade3_ReturnsPair()
+        {
+            // Arrange: Joker + Spade 3 (special card) should form a pair
+            var cards = new List<CardSO>
+            {
+                TestHelpers.CreateJoker(isRed: true),
+                TestHelpers.CreateCard(CardSO.Suit.Spade, 3)
+            };
+
+            // Act
+            PlayPattern pattern = detector.DetectPattern(cards);
+
+            // Assert
+            Assert.AreEqual(PlayPattern.Pair, pattern, "Joker + Spade 3 should form a pair");
+        }
+
+        [Test]
+        public void DetectPattern_TwoJokersWithTwoNormalCards_DifferentRanks_ReturnsInvalid()
+        {
+            // Arrange: 2 Jokers + 5 + 7 (different normal card ranks)
+            var cards = new List<CardSO>
+            {
+                TestHelpers.CreateJoker(isRed: true),
+                TestHelpers.CreateJoker(isRed: false),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Diamond, 7)
+            };
+
+            // Act
+            PlayPattern pattern = detector.DetectPattern(cards);
+
+            // Assert
+            Assert.AreEqual(PlayPattern.Invalid, pattern, "2 Jokers + 5 + 7 should be invalid (different ranks)");
+        }
+
+        [Test]
+        public void DetectPattern_OneJokerWithThreeNormalCards_SameRank_ReturnsQuadruple()
+        {
+            // Arrange: Joker + 5 + 5 + 5 should form a quadruple
+            var cards = new List<CardSO>
+            {
+                TestHelpers.CreateJoker(isRed: true),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Diamond, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Club, 5)
+            };
+
+            // Act
+            PlayPattern pattern = detector.DetectPattern(cards);
+
+            // Assert
+            Assert.AreEqual(PlayPattern.Quadruple, pattern, "Joker + 5 + 5 + 5 should form a quadruple");
+        }
+
+        [Test]
+        public void DetectPattern_TwoJokersWithTwoNormalCards_SameRank_ReturnsQuadruple()
+        {
+            // Arrange: 2 Jokers + 5 + 5 should form a quadruple (already added above, confirming)
+            var cards = new List<CardSO>
+            {
+                TestHelpers.CreateJoker(isRed: true),
+                TestHelpers.CreateJoker(isRed: false),
+                TestHelpers.CreateCard(CardSO.Suit.Heart, 5),
+                TestHelpers.CreateCard(CardSO.Suit.Diamond, 5)
+            };
+
+            // Act
+            PlayPattern pattern = detector.DetectPattern(cards);
+
+            // Assert
+            Assert.AreEqual(PlayPattern.Quadruple, pattern, "2 Jokers + 5 + 5 should form a quadruple (revolution trigger)");
+        }
+
         // ========== Invalid Patterns ==========
 
         [Test]

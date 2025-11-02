@@ -90,13 +90,30 @@ namespace Daifugo.Core
             }
         }
 
-        /// <summary>場の強度（現在のカードの強度、革命を考慮）</summary>
+        /// <summary>
+        /// 場の強度（現在のプレイの強度、革命を考慮）
+        /// ジョーカーを含む場合は非ジョーカーカードの強度を使用
+        /// </summary>
         public int Strength
         {
             get
             {
-                if (CurrentCard == null) return 0;
-                return CurrentCard.GetStrength(GetEffectiveRevolution());
+                if (!CurrentPlay.HasValue) return 0;
+
+                var cards = CurrentPlay.Value.Cards;
+                bool isRevolution = GetEffectiveRevolution();
+
+                // Find first non-Joker card to determine strength
+                var nonJoker = cards.FirstOrDefault(c => !c.IsJoker);
+
+                // If all cards are Jokers, use Joker strength (16)
+                if (nonJoker == null)
+                {
+                    return cards[0].GetStrength(isRevolution); // Joker strength is always 16
+                }
+
+                // Use non-Joker card strength (Jokers act as wildcards)
+                return nonJoker.GetStrength(isRevolution);
             }
         }
 

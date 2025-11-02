@@ -46,19 +46,24 @@ namespace Daifugo.Core
         }
 
         /// <summary>
-        /// Checks if all cards have same rank
+        /// Checks if all cards have same rank (Jokers act as wildcards)
         /// </summary>
         /// <param name="cards">Cards to check</param>
-        /// <returns>True if all cards have same rank (excluding Jokers)</returns>
+        /// <returns>True if all non-Joker cards have same rank, or all cards are Jokers</returns>
         private bool IsAllSameRank(List<CardSO> cards)
         {
             if (cards.Count == 0) return false;
 
-            // Jokers cannot form same rank patterns
-            if (cards.Any(c => c.IsJoker)) return false;
+            // Extract non-Joker cards
+            var nonJokers = cards.Where(c => !c.IsJoker).ToList();
 
-            int firstRank = cards[0].Rank;
-            return cards.All(c => c.Rank == firstRank);
+            // All Jokers: valid pattern (Joker pair/triple/quadruple)
+            if (nonJokers.Count == 0) return true;
+
+            // Check if all non-Joker cards have the same rank
+            // Jokers act as wildcards and match the rank of non-Joker cards
+            int firstRank = nonJokers[0].Rank;
+            return nonJokers.All(c => c.Rank == firstRank);
         }
 
         /// <summary>

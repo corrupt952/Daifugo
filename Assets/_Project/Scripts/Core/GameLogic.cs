@@ -288,12 +288,35 @@ namespace Daifugo.Core
             }
             else
             {
-                // Same rank (Pair/Triple/Quadruple): Compare by single card strength
-                // All cards have same rank, so just compare first card
-                int playStrength = cards[0].GetStrength(isRevolution);
+                // Same rank (Pair/Triple/Quadruple): Compare by card strength
+                // When Jokers are included as wildcards, use non-Joker card strength
+                // When all cards are Jokers, use Joker strength (16)
+                int playStrength = GetSameRankStrength(cards, isRevolution);
                 int fieldStrength = fieldState.Strength;
                 return playStrength > fieldStrength;
             }
+        }
+
+        /// <summary>
+        /// Gets strength for same rank pattern (Pair/Triple/Quadruple)
+        /// Handles Jokers as wildcards correctly
+        /// </summary>
+        /// <param name="cards">Cards in the pattern</param>
+        /// <param name="isRevolution">Whether revolution is active</param>
+        /// <returns>Strength value for comparison</returns>
+        private int GetSameRankStrength(System.Collections.Generic.List<CardSO> cards, bool isRevolution)
+        {
+            // Find first non-Joker card to determine strength
+            var nonJoker = cards.FirstOrDefault(c => !c.IsJoker);
+
+            // If all cards are Jokers, use Joker strength (16)
+            if (nonJoker == null)
+            {
+                return cards[0].GetStrength(isRevolution); // Joker strength is always 16
+            }
+
+            // Use non-Joker card strength (Jokers act as wildcards)
+            return nonJoker.GetStrength(isRevolution);
         }
 
         /// <summary>

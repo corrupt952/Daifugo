@@ -1227,5 +1227,153 @@ namespace Daifugo.Tests.Core
         }
 
         #endregion
+
+        #region Joker Multiple Cards Strength Tests
+
+        /// <summary>
+        /// Test: Joker + 7 pair should beat normal 5 pair (strength based on non-Joker card)
+        /// </summary>
+        [Test]
+        public void PlayCards_JokerPairStrongerThanNormalPair_ReturnsSuccess()
+        {
+            // Arrange
+            CardSO card5Spade = TestHelpers.CreateCard(CardSO.Suit.Spade, 5);
+            CardSO card5Heart = TestHelpers.CreateCard(CardSO.Suit.Heart, 5);
+            CardSO card7Diamond = TestHelpers.CreateCard(CardSO.Suit.Diamond, 7);
+            CardSO joker = TestHelpers.CreateJoker(isRed: true);
+
+            PlayerHandSO hand = TestHelpers.CreateHand(0, card7Diamond, joker);
+
+            // Field has 5 pair (strength: 5)
+            var field5Pair = new System.Collections.Generic.List<CardSO> { card5Spade, card5Heart };
+            FieldState field = FieldState.AddCards(FieldState.Empty(), field5Pair, 1);
+
+            // Joker + 7 pair (strength should be 7, not 16)
+            var joker7Pair = new System.Collections.Generic.List<CardSO> { joker, card7Diamond };
+
+            // Act
+            CardPlayResult result = gameLogic.PlayCards(joker7Pair, hand, field);
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess, "Joker + 7 pair (strength 7) should beat 5 pair (strength 5)");
+        }
+
+        /// <summary>
+        /// Test: Joker + 3 pair should NOT beat normal 5 pair (strength based on non-Joker card)
+        /// </summary>
+        [Test]
+        public void PlayCards_JokerPairWeakerThanNormalPair_ReturnsFail()
+        {
+            // Arrange
+            CardSO card5Spade = TestHelpers.CreateCard(CardSO.Suit.Spade, 5);
+            CardSO card5Heart = TestHelpers.CreateCard(CardSO.Suit.Heart, 5);
+            CardSO card3Diamond = TestHelpers.CreateCard(CardSO.Suit.Diamond, 3);
+            CardSO joker = TestHelpers.CreateJoker(isRed: true);
+
+            PlayerHandSO hand = TestHelpers.CreateHand(0, card3Diamond, joker);
+
+            // Field has 5 pair (strength: 5)
+            var field5Pair = new System.Collections.Generic.List<CardSO> { card5Spade, card5Heart };
+            FieldState field = FieldState.AddCards(FieldState.Empty(), field5Pair, 1);
+
+            // Joker + 3 pair (strength should be 3, not 16)
+            var joker3Pair = new System.Collections.Generic.List<CardSO> { joker, card3Diamond };
+
+            // Act
+            CardPlayResult result = gameLogic.PlayCards(joker3Pair, hand, field);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess, "Joker + 3 pair (strength 3) should NOT beat 5 pair (strength 5)");
+        }
+
+        /// <summary>
+        /// Test: Joker pair (Joker + Joker) should beat any normal pair (strength 16)
+        /// </summary>
+        [Test]
+        public void PlayCards_JokerJokerPairBeatsNormalPair_ReturnsSuccess()
+        {
+            // Arrange
+            CardSO card2Spade = TestHelpers.CreateCard(CardSO.Suit.Spade, 2); // Strongest normal card (15)
+            CardSO card2Heart = TestHelpers.CreateCard(CardSO.Suit.Heart, 2);
+            CardSO joker1 = TestHelpers.CreateJoker(isRed: true);
+            CardSO joker2 = TestHelpers.CreateJoker(isRed: false);
+
+            PlayerHandSO hand = TestHelpers.CreateHand(0, joker1, joker2);
+
+            // Field has 2 pair (strength: 15)
+            var field2Pair = new System.Collections.Generic.List<CardSO> { card2Spade, card2Heart };
+            FieldState field = FieldState.AddCards(FieldState.Empty(), field2Pair, 1);
+
+            // Joker + Joker pair (strength should be 16)
+            var jokerPair = new System.Collections.Generic.List<CardSO> { joker1, joker2 };
+
+            // Act
+            CardPlayResult result = gameLogic.PlayCards(jokerPair, hand, field);
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess, "Joker + Joker pair (strength 16) should beat 2 pair (strength 15)");
+        }
+
+        /// <summary>
+        /// Test: 2 Jokers + two 5s quadruple should trigger revolution
+        /// </summary>
+        [Test]
+        public void PlayCards_TwoJokersPlusTwoFivesQuadruple_ActivatesRevolution()
+        {
+            // Arrange
+            CardSO card5Spade = TestHelpers.CreateCard(CardSO.Suit.Spade, 5);
+            CardSO card5Heart = TestHelpers.CreateCard(CardSO.Suit.Heart, 5);
+            CardSO joker1 = TestHelpers.CreateJoker(isRed: true);
+            CardSO joker2 = TestHelpers.CreateJoker(isRed: false);
+
+            // Enable revolution rule
+            GameRulesSO revolutionRules = TestHelpers.CreateGameRules(enableRevolution: true);
+            GameLogic revolutionLogic = new GameLogic(revolutionRules);
+
+            PlayerHandSO hand = TestHelpers.CreateHand(0, card5Spade, card5Heart, joker1, joker2);
+            FieldState field = FieldState.Empty();
+
+            // 2 Jokers + 5 + 5 quadruple
+            var jokerQuadruple = new System.Collections.Generic.List<CardSO> { joker1, joker2, card5Spade, card5Heart };
+
+            // Act
+            CardPlayResult result = revolutionLogic.PlayCards(jokerQuadruple, hand, field);
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess, "Quadruple play should succeed");
+            Assert.IsTrue(result.ShouldActivateRevolution, "4-card play with revolution rule should trigger revolution");
+        }
+
+        /// <summary>
+        /// Test: Joker + 5 + 5 triple should have strength 5 (not 16)
+        /// </summary>
+        [Test]
+        public void PlayCards_JokerTripleStrongerThanNormalTriple_ReturnsSuccess()
+        {
+            // Arrange
+            CardSO card3Spade = TestHelpers.CreateCard(CardSO.Suit.Spade, 3);
+            CardSO card3Heart = TestHelpers.CreateCard(CardSO.Suit.Heart, 3);
+            CardSO card3Diamond = TestHelpers.CreateCard(CardSO.Suit.Diamond, 3);
+            CardSO card5Spade = TestHelpers.CreateCard(CardSO.Suit.Spade, 5);
+            CardSO card5Heart = TestHelpers.CreateCard(CardSO.Suit.Heart, 5);
+            CardSO joker = TestHelpers.CreateJoker(isRed: true);
+
+            PlayerHandSO hand = TestHelpers.CreateHand(0, card5Spade, card5Heart, joker);
+
+            // Field has 3 triple (strength: 3)
+            var field3Triple = new System.Collections.Generic.List<CardSO> { card3Spade, card3Heart, card3Diamond };
+            FieldState field = FieldState.AddCards(FieldState.Empty(), field3Triple, 1);
+
+            // Joker + 5 + 5 triple (strength should be 5, not 16)
+            var joker5Triple = new System.Collections.Generic.List<CardSO> { joker, card5Spade, card5Heart };
+
+            // Act
+            CardPlayResult result = gameLogic.PlayCards(joker5Triple, hand, field);
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess, "Joker + 5 + 5 triple (strength 5) should beat 3 triple (strength 3)");
+        }
+
+        #endregion
     }
 }
