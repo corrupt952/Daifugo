@@ -6,8 +6,7 @@ namespace Daifugo.Core
 {
     /// <summary>
     /// 出せる手札を算出する純粋ロジッククラス
-    /// Phase 1: 単一カード強度比較のみ
-    /// Phase 2以降: 複数枚出し、階段、特殊ルール対応予定
+    /// 単一カード強度比較、革命・11バック対応、縛りルール対応
     /// </summary>
     public class PlayableCardsCalculator
     {
@@ -30,8 +29,7 @@ namespace Daifugo.Core
             if (fieldState.IsEmpty)
                 return new List<CardSO>(hand.Cards);
 
-            // Phase 1: 単一カード強度比較のみ
-            // Phase 2以降: gameRulesを使って革命、縛りなどを判定
+            // 単一カード強度比較（革命、縛りルール対応）
             return hand.Cards
                 .Where(card => CanPlayCard(card, fieldState, gameRules))
                 .ToList();
@@ -53,7 +51,7 @@ namespace Daifugo.Core
             if (fieldState.IsEmpty) return true;
 
             // スペ3返し：ジョーカー単体に対してスペード3を出せる（縛り無視）
-            // Phase 1: 複数枚出しがないため、CurrentCardがJokerであればJoker単体プレイと判定
+            // Note: 単一カードプレイ時のみ判定（CurrentCardがJoker = Joker単体プレイ）
             if (gameRules.IsSpade3ReturnEnabled &&
                 fieldState.CurrentCard != null &&
                 fieldState.CurrentCard.IsJoker &&
@@ -63,7 +61,7 @@ namespace Daifugo.Core
                 return true;
             }
 
-            // Phase 2: 縛りルールチェック
+            // 縛りルールチェック
             if (fieldState.IsBindingActive(gameRules))
             {
                 var bindingSuit = fieldState.GetBindingSuit(gameRules);

@@ -40,9 +40,9 @@ namespace Daifugo.Data
         [Tooltip("禁止上がりルールを有効にする（ジョーカー、2、8、スペ3で上がると負け）")]
         [SerializeField] private bool enableForbiddenFinish = false;
 
-        // ========== Advanced Rules (Phase 2以降で実装予定) ==========
+        // ========== Advanced Rules (複数枚出しルール) ==========
 
-        [Header("Advanced Rules (Phase 2以降で実装予定)")]
+        [Header("Advanced Rules (複数枚出しルール)")]
         [Tooltip("革命ルールを有効にする（4枚出しで強さ逆転）")]
         [SerializeField] private bool enableRevolution = false;
 
@@ -128,13 +128,13 @@ namespace Daifugo.Data
             enableForbiddenFinish = value;
         }
 
-        // ========== 将来追加予定のルール ==========
+        // ========== 将来追加検討中のルール ==========
 
-        // [Header("Additional Rules (未実装)")]
-        // [Tooltip("都落ちルールを有効にする")]
+        // [Header("Additional Rules (将来追加検討中)")]
+        // [Tooltip("都落ちルールを有効にする（大富豪が最下位になったら貧民に転落）")]
         // [SerializeField] private bool enableMiyakoOchi = false;
         //
-        // [Tooltip("下克上ルールを有効にする")]
+        // [Tooltip("下克上ルールを有効にする（貧民が1位になったら大富豪に昇格）")]
         // [SerializeField] private bool enableGekoJo = false;
     }
 }

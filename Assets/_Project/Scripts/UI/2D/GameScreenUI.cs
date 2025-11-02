@@ -690,8 +690,8 @@ namespace Daifugo.UI
                 return;
             }
 
-            // Phase 1.5: Field requires multiple cards → no single card highlight
-            // TODO Phase 2: Implement proper multiple card playable detection
+            // Note: Field requires multiple cards → no single card highlight
+            // Future: Implement proper multiple card playable detection
             if (!currentFieldState.IsEmpty && currentFieldState.GetLastPlayCount() > 1)
             {
                 playerHandUI.HighlightPlayableCards(new List<CardSO>());

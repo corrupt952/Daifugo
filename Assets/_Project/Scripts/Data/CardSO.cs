@@ -44,7 +44,7 @@ namespace Daifugo.Data
 
         /// <summary>
         /// Gets the card strength according to Daifugo rules
-        /// Phase 1.5: Supports revolution mode where card strengths are reversed
+        /// Supports revolution mode where card strengths are reversed
         /// </summary>
         /// <param name="isRevolution">Whether revolution is active (default: false)</param>
         /// <returns>Card strength value for comparison</returns>

@@ -17,4 +17,4 @@ MonoBehaviour:
   enableSpade3Return: 1
   enable11Back: 1
   enableForbiddenFinish: 1
-  enableRevolution: 0
+  enableRevolution: 1

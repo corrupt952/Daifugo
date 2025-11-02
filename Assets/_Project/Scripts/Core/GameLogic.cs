@@ -19,7 +19,7 @@ namespace Daifugo.Core
         SamePlayer,
 
         /// <summary>
-        /// Skip finished players (for Phase 2+ with multiple finishers)
+        /// Skip finished players (for future multi-winner support)
         /// </summary>
         SkipFinished,
 
@@ -87,8 +87,7 @@ namespace Daifugo.Core
             // Check win condition
             bool isWin = hand.IsEmpty;
 
-            // Check forbidden finish (禁止上がり)
-            // If player finishes with forbidden card, they lose instead of winning
+            // Check forbidden finish
             bool isForbiddenFinish = isWin && CheckForbiddenFinish(card);
 
             return CardPlayResult.Success(
@@ -141,7 +140,7 @@ namespace Daifugo.Core
         private bool CheckSpecialRules_Spade3Return(CardSO card, FieldState currentFieldState)
         {
             // Spade 3 Return: Spade 3 beats single Joker and clears the field
-            // Phase 1: 複数枚出しがないため、CurrentCardがJokerであればJoker単体プレイと判定
+            // Note: 単一カードプレイ時のみ判定（CurrentCardがJoker = Joker単体プレイ）
             if (gameRules.IsSpade3ReturnEnabled &&
                 card.CardSuit == CardSO.Suit.Spade &&
                 card.Rank == 3 &&
@@ -155,7 +154,7 @@ namespace Daifugo.Core
         }
 
         /// <summary>
-        /// Checks if the card is a forbidden finish card (禁止上がり)
+        /// Checks if the card is a forbidden finish card
         /// Forbidden cards: Joker, 2, 8, Spade 3
         /// </summary>
         /// <param name="card">Card that was played</param>
@@ -167,7 +166,7 @@ namespace Daifugo.Core
             // Joker is always forbidden
             if (card.IsJoker) return true;
 
-            // 2, 8, Spade 3 are forbidden (Phase 1: no revolution, so always these cards)
+            // 2, 8, Spade 3 are forbidden
             if (card.Rank == 2) return true;
             if (card.Rank == 8) return true;
             if (card.CardSuit == CardSO.Suit.Spade && card.Rank == 3) return true;
@@ -175,11 +174,11 @@ namespace Daifugo.Core
             return false;
         }
 
-        // ========== Phase 1.5: Multiple Cards Play ==========
+        // ========== Multiple Cards Play ==========
 
         /// <summary>
         /// Executes multiple cards play logic with validation and special rules
-        /// Phase 1.5: Supports pairs, triples, quadruples, and sequences
+        /// Supports pairs, triples, quadruples, and sequences
         /// </summary>
         /// <param name="cards">Cards to play</param>
         /// <param name="hand">Player's hand (will be modified)</param>
@@ -222,7 +221,7 @@ namespace Daifugo.Core
             FieldState newFieldState = FieldState.AddCards(
                 currentFieldState,
                 cards,
-                playerID: 0,  // TODO: Pass actual player ID in Phase 2
+                playerID: 0,  // Note: Player ID for tracking (currently not used in binding logic)
                 activatesRevolution: shouldActivateRevolution,
                 activates11Back: shouldActivate11Back
             );
@@ -230,7 +229,7 @@ namespace Daifugo.Core
             // Check win condition
             bool isWin = hand.IsEmpty;
 
-            // Check forbidden finish (禁止上がり)
+            // Check forbidden finish
             bool isForbiddenFinish = isWin && CheckForbiddenFinish(cards);
 
             return CardPlayResult.Success(
@@ -366,7 +365,7 @@ namespace Daifugo.Core
 
         /// <summary>
         /// Whether revolution rule is activated (4 cards of same rank triggers permanent revolution)
-        /// Phase 1.5: 4枚出しで革命発動
+        /// 4枚出しで革命発動
         /// </summary>
         public bool ShouldActivateRevolution { get; private set; }
 

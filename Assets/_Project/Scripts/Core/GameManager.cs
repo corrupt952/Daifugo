@@ -199,11 +199,10 @@ namespace Daifugo.Core
                     if (result.IsForbiddenFinish)
                     {
                         // Forbidden finish: Player loses instead of wins
-                        // Phase 1.5: Simplified - end game with message
                         Debug.LogWarning($"[GameManager] Player {currentPlayer} attempted forbidden finish! (Joker/2/8/Spade3)");
-                        // TODO Phase 2: Continue game with remaining players
-                        // For now, treat as game over
-                        EndGame(currentPlayer); // Temporary: still ends game
+                        // Future: Continue game with remaining players
+                        // Current: Game ends with this player as winner (simplified)
+                        EndGame(currentPlayer);
                     }
                     else
                     {
