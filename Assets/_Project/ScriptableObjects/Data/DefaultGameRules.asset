@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Daifugo.Runtime::Daifugo.Data.GameRulesSO
   enable8Cut: 1
   enableBind: 1
-  enableSpade3Return: 1
+  enableSpade3Return: 0
   enable11Back: 1
   enableForbiddenFinish: 1
   enableRevolution: 1
