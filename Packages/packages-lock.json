@@ -12,10 +12,11 @@
       "hash": "b651c5866fe0e3fba065ce2e56dfdfcd59d3d109"
     },
     "com.tang3cko.eventchannels": {
-      "version": "file:../../Rookie/Assets/Event Channels",
+      "version": "git@github.com:tang3cko/EventChannels.git?path=/Assets/Event%20Channels",
       "depth": 0,
-      "source": "local",
-      "dependencies": {}
+      "source": "git",
+      "dependencies": {},
+      "hash": "ebb78af199fad023eb32e93defdf21414cc372ac"
     },
     "com.unity.ai.navigation": {
       "version": "2.0.9",
